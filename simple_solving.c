@@ -11,6 +11,9 @@
 #define ENTRY 2
 #define EXIT 3
 
+#define COLS 11
+#define LINES 11
+
 typedef int** laby;
 
 typedef struct{
@@ -22,35 +25,62 @@ laby create_labyrinth(int cols, int lines);
 int is_solution_true(laby, slot*, int);
 void free_labyrinth(laby*, int cols, int lines);
 void print_labyrinth(laby , int cols, int lines);
+slot* solve_labyrinth(laby, int cols, int lines);
+void print_slot(slot);
 
 int main(){
-    laby l;
-
-    l = create_labyrinth(11, 11);
-    print_labyrinth(l, 11, 11);
-    free_labyrinth(&l, 11, 11);
+    laby l = create_labyrinth(COLS, LINES);
+    print_labyrinth(l, COLS, LINES);
+    solve_labyrinth(l, COLS, LINES);
+    free_labyrinth(&l, COLS, LINES);
     return 0;
 }
+
+slot* solve_labyrinth(laby l, int cols, int lines){
+    // first let's find the depart
+    slot start;
+    for(int i=0; i< cols; i++)
+        for(int j=0; j< lines; j++)
+            if(l[i][j] == ENTRY){
+                start.col = i;
+                start.line = j;
+                //stop the loops
+                i = cols;
+                j = lines;
+            }
+
+
+}
+
+void print_slot(slot s){
+    printf("%d %d\n", s.col, s.line);
+}
+
 
 
 
 void print_labyrinth(laby l, int cols, int lines){
     for(int i=0; i< cols; i++){
-        for(int j=0; j< lines; j++){
-            if(l[i][j] == 0)
-                printf("#");
-            else if(l[i][j] == 1)
-                printf(" ");
-            else if(l[i][j] == 2)
-                printf("D");
-            else if(l[i][j] == 3)
-                printf("X");
-        }
+        for(int j=0; j< lines; j++)
+            switch(l[i][j]){
+                case 0:
+                    printf("#");
+                    break;
+                case 1:
+                    printf(" ");
+                    break;
+                case 2:
+                    printf("D");
+                    break;
+                case 3:
+                    printf("X");
+                    break;
+                default:
+                    break;
+            }
         printf("\n");
     }
 }
-
-
 
 
 
