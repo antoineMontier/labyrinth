@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <math.h>
 
 
 #define WALL 0
@@ -17,19 +18,42 @@ typedef struct{
     int line;
 } slot;
 
-laby create_labyrinth(int cols, int lines){
-    char* command = malloc(128);
-    sprintf(command, "python generateur.py %d %d > out.txt", cols, lines);
-    system(command);
-    free(command);
-}
-
+laby create_labyrinth(int cols, int lines);
 int is_solution_true(laby, slot*, int);
+void free_labyrinth(laby*, int cols, int lines);
+void print_labyrinth(laby , int cols, int lines);
 
 int main(){
-    create_labyrinth(11, 11);
+    laby l;
+
+    l = create_labyrinth(11, 11);
+    print_labyrinth(l, 11, 11);
+    free_labyrinth(&l, 11, 11);
     return 0;
 }
+
+
+
+void print_labyrinth(laby l, int cols, int lines){
+    for(int i=0; i< cols; i++){
+        for(int j=0; j< lines; j++){
+            if(l[i][j] == 0)
+                printf("#");
+            else if(l[i][j] == 1)
+                printf(" ");
+            else if(l[i][j] == 2)
+                printf("D");
+            else if(l[i][j] == 3)
+                printf("X");
+        }
+        printf("\n");
+    }
+}
+
+
+
+
+
 
 int is_solution_true(laby l, slot*slot_array, int path_length){
     //check if beginning is entry and end is exit
@@ -57,4 +81,47 @@ int is_solution_true(laby l, slot*slot_array, int path_length){
         }
     }
     return 1; // all tests passed
+}
+
+void free_labyrinth(laby*l, int cols, int lines){
+    if(*l == NULL)
+        return; // nothing to do
+
+    for(int i = 0 ; i < cols ; i++)
+        if((*l)[i] != NULL)
+            free((*l)[i]);
+    if(*l != NULL)
+        free(*l);
+    *l = NULL;
+}
+
+laby create_labyrinth(int cols, int lines){
+    char* command = malloc(128);
+    sprintf(command, "python3 generateur.py %d %d > out.txt", cols, lines);
+    system(command);
+    free(command);
+    FILE* out = fopen("out.txt", "r");
+    if (out == NULL) {
+        printf("Failed to open file.\n");
+    }
+
+    laby current_laby = (laby)malloc(cols * sizeof(int *));
+    for (int i = 0; i < lines; i++) {
+        current_laby[i] = (int *)malloc(lines * sizeof(int));
+    }
+
+    int c;
+
+    for (int i = 0; i < cols; i++) {
+        for (int j = 0; j < lines; j++) {
+            c = fgetc(out);
+            if (c != '\n') {
+                current_laby[i][j] = c - '0';
+            }
+        }
+        fgetc(out); // skip over the newline character
+    }
+    
+    fclose(out);
+    return current_laby;
 }
