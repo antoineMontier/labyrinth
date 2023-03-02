@@ -21,12 +21,15 @@ typedef struct{
     int line;
 } slot;
 
+typedef slot* chemin;
+
 laby create_labyrinth(int cols, int lines);
 int is_solution_true(laby, slot*, int);
 void free_labyrinth(laby*, int cols, int lines);
 void print_labyrinth(laby , int cols, int lines);
 slot* solve_labyrinth(laby, int cols, int lines);
 void print_slot(slot);
+int rec_find(laby, chemin res, slot start, slot end);
 
 int main(){
     laby l = create_labyrinth(COLS, LINES);
@@ -35,6 +38,37 @@ int main(){
     free_labyrinth(&l, COLS, LINES);
     return 0;
 }
+
+
+int rec_find(laby l, chemin res, slot current, slot end){
+    if(res == NULL)
+        fprintf(stderr, "chemin is null, use malloc\n");
+
+    if(current.col == end.col && current.line == end.line){
+        print_slot(current);
+        return 1;
+    }
+    print_slot(current);
+    // check 4 directions
+
+    if(l[current.col-1][current.line] != WALL){
+        slot next = {current.col-1, current.line};
+        rec_find(l, res, next, end);   
+    }
+    if(l[current.col+1][current.line] != WALL){
+        slot next = {current.col+1, current.line};
+        rec_find(l, res, next, end);
+    }
+    if(l[current.col][current.line-1] != WALL){
+        slot next = {current.col, current.line-1};
+        rec_find(l, res, next, end);
+    }
+    if(l[current.col][current.line+1] != WALL){
+        slot next = {current.col, current.line+1};
+        rec_find(l, res, next, end);
+    }   
+}
+
 
 slot* solve_labyrinth(laby l, int cols, int lines){
     // first let's find the depart
@@ -49,7 +83,22 @@ slot* solve_labyrinth(laby l, int cols, int lines){
                 j = lines;
             }
 
+    //let's find the end slot
+    slot end;
+    for(int i=0; i< cols; i++)
+        for(int j=0; j< lines; j++)
+            if(l[i][j] == EXIT){
+                end.col = i;
+                end.line = j;
+                //stop the loops
+                i = cols;
+                j = lines;
+            }
 
+    chemin answer = malloc(sizeof(chemin) * 10);
+    rec_find(l, answer, start, end);
+
+    free(answer);
 }
 
 void print_slot(slot s){
@@ -63,16 +112,16 @@ void print_labyrinth(laby l, int cols, int lines){
     for(int i=0; i< cols; i++){
         for(int j=0; j< lines; j++)
             switch(l[i][j]){
-                case 0:
+                case WALL:
                     printf("#");
                     break;
-                case 1:
+                case PATH:
                     printf(" ");
                     break;
-                case 2:
+                case ENTRY:
                     printf("D");
                     break;
-                case 3:
+                case EXIT:
                     printf("X");
                     break;
                 default:
