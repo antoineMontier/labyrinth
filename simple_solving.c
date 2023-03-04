@@ -14,6 +14,8 @@
 #define COLS 11
 #define LINES 11
 
+#define CHEMIN_LENGTH 100
+
 typedef int** laby;
 
 typedef struct{
@@ -30,6 +32,8 @@ void print_labyrinth(laby , int cols, int lines);
 slot* solve_labyrinth(laby, int cols, int lines);
 void print_slot(slot);
 int rec_find(laby, chemin res, slot start, slot end);
+int slot_in_chemin(int col, int line, chemin c);
+void add_current_coordinates_to_chemin(int col, int line, chemin c);
 
 int main(){
     laby l = create_labyrinth(COLS, LINES);
@@ -39,31 +43,48 @@ int main(){
     return 0;
 }
 
+void add_current_coordinates_to_chemin(int col, int line, chemin c){
+    for(int i = 0 ; i < CHEMIN_LENGTH; i++)
+        if(c[i].col == -1 && c[i].line == -1){
+            slot s = {col, line};
+            c[i] = s;
+            return;
+        }
+}
+
+
+int slot_in_chemin(int col, int line, chemin c){
+    for(int i=0; i<CHEMIN_LENGTH; i++)
+        if(c[i].col == col && c[i].line == line)
+            return 1;
+    return 0;
+}
 
 int rec_find(laby l, chemin res, slot current, slot end){
     if(res == NULL)
         fprintf(stderr, "chemin is null, use malloc\n");
-
+    add_current_coordinates_to_chemin(current.col, current.line, res);
     if(current.col == end.col && current.line == end.line){
+        printf("solved\n");
         print_slot(current);
         return 1;
     }
     print_slot(current);
     // check 4 directions
 
-    if(l[current.col-1][current.line] != WALL){
+    if(!slot_in_chemin(current.col-1, current.line, res) && l[current.col-1][current.line] != WALL){
         slot next = {current.col-1, current.line};
         rec_find(l, res, next, end);   
     }
-    if(l[current.col+1][current.line] != WALL){
+    if(!slot_in_chemin(current.col+1, current.line, res) && l[current.col+1][current.line] != WALL){
         slot next = {current.col+1, current.line};
         rec_find(l, res, next, end);
     }
-    if(l[current.col][current.line-1] != WALL){
+    if(!slot_in_chemin(current.col, current.line-1, res) && l[current.col][current.line-1] != WALL){
         slot next = {current.col, current.line-1};
         rec_find(l, res, next, end);
     }
-    if(l[current.col][current.line+1] != WALL){
+    if(!slot_in_chemin(current.col, current.line+1, res) && l[current.col][current.line+1] != WALL){
         slot next = {current.col, current.line+1};
         rec_find(l, res, next, end);
     }   
@@ -95,7 +116,11 @@ slot* solve_labyrinth(laby l, int cols, int lines){
                 j = lines;
             }
 
-    chemin answer = malloc(sizeof(chemin) * 10);
+    chemin answer = malloc(sizeof(chemin) * CHEMIN_LENGTH);
+    for(int i = 0; i < CHEMIN_LENGTH; i++){
+        answer[i].col = -1;
+        answer[i].line = -1;
+    }
     rec_find(l, answer, start, end);
 
     free(answer);
@@ -150,7 +175,7 @@ int is_solution_true(laby l, slot*slot_array, int path_length){
                 return 0; // not neighbours
         }
         //same line
-        else if(slot_array[i].line == slot_array[i].line){
+        else if(slot_array[i].line == slot_array[i-1].line){
             //check the col difference between the two lines is 1
             if(fabs(slot_array[i].col - slot_array[i-1].col) != 1)
                 return 0; // not neighbours
