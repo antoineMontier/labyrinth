@@ -34,12 +34,13 @@ Case* solve_labyrinth(laby, int cols, int lines);
 void print_Case(Case);
 int rec_find(laby, chemin res, Case start, Case end);
 int Case_in_chemin(int col, int line, chemin c);
-void ajouter_coordonees_au_chemin_si_voisin(int col, int line, chemin c);
+void ajouter_coordonees_au_chemin_au_dernier_voisin(int col, int line, chemin c);
 void print_chemin(chemin c);
 void print_solution(laby l, int cols, int lines, chemin c);
 int abs(int x);
 int sont_voisines(Case a, Case b); // ne fonctionne pas en diagonale
 int cases_egales(Case a, Case b);
+int ajouter_au_dernier_voisin(chemin c, Case a_ajouter);
 
 
 int main(){
@@ -67,8 +68,8 @@ void print_solution(laby l, int cols, int lines, chemin c){
     print_labyrinth(l, cols, lines);
 
     // retirer les lettres
-    for(int i=1; i<CHEMIN_LENGTH -1; ++i){
-        if(c[i+1].col == -1 && c[i+1].line == -1)
+    for(int i=1; i<CHEMIN_LENGTH ; ++i){
+        if(c[i].col == -1 && c[i].line == -1)
             break;
         else
             l[c[i].col][c[i].line] = WAY;
@@ -87,15 +88,30 @@ void print_chemin(chemin c){
 }
 
 
-void ajouter_coordonees_au_chemin_si_voisin(int col, int line, chemin c){
+void ajouter_coordonees_au_chemin_au_dernier_voisin(int col, int line, chemin c){
     Case s = {col, line};
     // printf("about to add %d;%d\n", col, line  );
     for(int i = 0 ; i < CHEMIN_LENGTH; i++)
-        if(c[i].col == -1 && c[i].line == -1)
-            if(i == 0 || sont_voisines(c[i-1], s)){
+        if(c[i].col == -1 && c[i].line == -1){
+            if(i == 0){
                 c[i] = s;
                 return;
+            }else{
+                ajouter_au_dernier_voisin(c, s);
             }
+    }
+}
+
+int ajouter_au_dernier_voisin(chemin c, Case a_ajouter){
+    for(int i = CHEMIN_LENGTH-2; i >= 0; i--){
+        if(!(c[i].col == -1 && c[i].line == -1)){// skipper toutes les cases à la fin de coordonnees{-1 ; 1}
+            if(sont_voisines(c[i], a_ajouter)){
+                c[i+1] = a_ajouter;
+                return 1; // case ajoutee
+            }
+        }
+    }
+    return 0; // aucune case ajoutee
 }
 
 
@@ -125,7 +141,7 @@ int rec_find(laby l, chemin res, Case current, Case end){
     l[current.col][current.line] = VISITE;
 
     //ajouter la case dans le chemin
-    ajouter_coordonees_au_chemin_si_voisin(current.col, current.line, res);
+    ajouter_coordonees_au_chemin_au_dernier_voisin(current.col, current.line, res);
 
 
     // verifier les 4 directions
