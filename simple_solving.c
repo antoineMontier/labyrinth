@@ -35,6 +35,7 @@ int rec_find(laby, chemin res, Case start, Case end);
 int Case_in_chemin(int col, int line, chemin c);
 void ajouter_coordonees_au_chemin(int col, int line, chemin c);
 void print_chemin(chemin c);
+void print_solution(laby l, int cols, int lines, chemin c);
 
 
 int main(){
@@ -44,9 +45,31 @@ int main(){
     if(check_solution(l, ans))
         printf("Solution OK\n");
     print_chemin(ans);
+    print_solution(l, COLS, LINES, ans);
     free_labyrinth(&l, COLS, LINES);
     return 0;
 }
+
+void print_solution(laby l, int cols, int lines, chemin c){
+    // ajouter des '+' dans le labyrinth pour montrer le chemin pris
+    for(int i=1; i<CHEMIN_LENGTH-1 ; ++i){
+        if(c[i+1].col == -1 && c[i+1].line == -1)
+            break;
+        else
+            l[c[i].col][c[i].line] = i < 27 ? 'a' + i - 1 : 'A' + i - 27; 
+        }
+
+    print_labyrinth(l, cols, lines);
+
+    // retirer les '+'
+    for(int i=1; i<CHEMIN_LENGTH -1; ++i){
+        if(c[i+1].col == -1 && c[i+1].line == -1)
+            break;
+        else
+            l[c[i].col][c[i].line] = WAY;
+        }
+}
+
 
 void print_chemin(chemin c){
     printf("[");
@@ -165,12 +188,13 @@ void print_labyrinth(laby l, int cols, int lines){
                     printf(" ");
                     break;
                 case ENTREE:
-                    printf("D");
+                    printf("+");
                     break;
                 case EXIT:
-                    printf("X");
+                    printf("-");
                     break;
                 default:
+                    printf("%c", l[i][j]);
                     break;
             }
         printf("\n");
@@ -180,13 +204,13 @@ void print_labyrinth(laby l, int cols, int lines){
 
 
 
-int check_solution(laby l, Case*Case_array){
+int check_solution(laby l, Case*Case_tab){
     //verifier ENTREE
-    if(l[Case_array[0].col][Case_array[0].line] != ENTREE)
+    if(l[Case_tab[0].col][Case_tab[0].line] != ENTREE)
         return 0; //false
     int index_end;
     for(index_end = 0; index_end < CHEMIN_LENGTH-1 ; index_end++)
-        if(Case_array[index_end+1].col == -1 && Case_array[index_end+1].line == -1)
+        if(Case_tab[index_end+1].col == -1 && Case_tab[index_end+1].line == -1)
             break;
         
     if(index_end == CHEMIN_LENGTH - 1)
@@ -195,15 +219,15 @@ int check_solution(laby l, Case*Case_array){
     //verifier que les cases sont voisines
     for(int i = 1; i <= index_end ; i++){
         //meme colonne
-        if(Case_array[i].col == Case_array[i-1].col){
+        if(Case_tab[i].col == Case_tab[i-1].col){
             //verifier que la difference de lignes est 1.
-            if(fabs(Case_array[i].line - Case_array[i-1].line) != 1)
+            if(fabs(Case_tab[i].line - Case_tab[i-1].line) != 1)
                 return 0; // pas voisins
         }
         //same line
-        else if(Case_array[i].line == Case_array[i-1].line){
+        else if(Case_tab[i].line == Case_tab[i-1].line){
             //verifier que la difference de colonnes est 1.
-            if(fabs(Case_array[i].col - Case_array[i-1].col) != 1)
+            if(fabs(Case_tab[i].col - Case_tab[i-1].col) != 1)
                 return 0; // pas voisins
         }
         else{
