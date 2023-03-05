@@ -11,6 +11,7 @@
 #define ENTREE 2
 #define EXIT 3
 #define VISITE (-124)
+#define END_SIGNAL (-123)
 
 #define COLS 11
 #define LINES 11
@@ -89,6 +90,8 @@ void print_chemin(chemin c){
 
 
 void ajouter_coordonees_au_chemin_au_dernier_voisin(int col, int line, chemin c){
+    if(c[CHEMIN_LENGTH-1].col == END_SIGNAL && c[CHEMIN_LENGTH-1].line == END_SIGNAL)
+        return; // end signal : solution deja trouvee
     Case s = {col, line};
     // printf("about to add %d;%d\n", col, line  );
     for(int i = 0 ; i < CHEMIN_LENGTH; i++)
@@ -127,13 +130,25 @@ int rec_find(laby l, chemin res, Case current, Case end){
     if(res == NULL)
         fprintf(stderr, "chemin doit etre declare avec malloc\n");
 
-    if(res[CHEMIN_LENGTH-1].col == -123 && res[CHEMIN_LENGTH-1].line == -123)
+    if(res[CHEMIN_LENGTH-1].col == END_SIGNAL && res[CHEMIN_LENGTH-1].line == END_SIGNAL) // check end_signal
         return 0; // une solution a deja ete trouvee
 
+    print_Case(current);
     
     if(cases_egales(current, end)){
+        // ajouter à la main la derniere case dans le chemin : -- ne résouds pas le souci de cases en trop dans le chemin solution
+        for(int i=0; i<CHEMIN_LENGTH; i++)
+            if(res[i].col == -1 && res[i].line == -1){
+                res[i] = end;
+                break;
+            }
+        // marquer toutes les cases comme visitées :  -- ne résouds pas le souci de cases en trop dans le chemin solution
+        for(int i = 0 ; i < COLS ; i++)
+            for(int j = 0 ; j < LINES ; j++)
+                if(l[i][j] == WAY)
+                    l[i][j] = VISITE;
         printf("resolu\n");
-        Case end_signal = {-123, -123};
+        Case end_signal = {END_SIGNAL, END_SIGNAL};
         res[CHEMIN_LENGTH-1] = end_signal;
         return 1;
     }
