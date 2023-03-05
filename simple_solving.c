@@ -10,11 +10,12 @@
 #define WAY 1
 #define ENTREE 2
 #define EXIT 3
+#define VISITE (-124)
 
 #define COLS 11
 #define LINES 11
 
-#define CHEMIN_LENGTH 100
+#define CHEMIN_LENGTH (COLS * LINES)
 
 typedef int** laby;
 
@@ -33,9 +34,12 @@ Case* solve_labyrinth(laby, int cols, int lines);
 void print_Case(Case);
 int rec_find(laby, chemin res, Case start, Case end);
 int Case_in_chemin(int col, int line, chemin c);
-void ajouter_coordonees_au_chemin(int col, int line, chemin c);
+void ajouter_coordonees_au_chemin_si_voisin(int col, int line, chemin c);
 void print_chemin(chemin c);
 void print_solution(laby l, int cols, int lines, chemin c);
+int abs(int x);
+int sont_voisines(Case a, Case b); // ne fonctionne pas en diagonale
+int cases_egales(Case a, Case b);
 
 
 int main(){
@@ -46,12 +50,13 @@ int main(){
         printf("Solution OK\n");
     print_chemin(ans);
     print_solution(l, COLS, LINES, ans);
+    free(ans);
     free_labyrinth(&l, COLS, LINES);
     return 0;
 }
 
 void print_solution(laby l, int cols, int lines, chemin c){
-    // ajouter des '+' dans le labyrinth pour montrer le chemin pris
+    // ajouter des lettres dans le labyrinth pour montrer le chemin pris
     for(int i=1; i<CHEMIN_LENGTH-1 ; ++i){
         if(c[i+1].col == -1 && c[i+1].line == -1)
             break;
@@ -61,7 +66,7 @@ void print_solution(laby l, int cols, int lines, chemin c){
 
     print_labyrinth(l, cols, lines);
 
-    // retirer les '+'
+    // retirer les lettres
     for(int i=1; i<CHEMIN_LENGTH -1; ++i){
         if(c[i+1].col == -1 && c[i+1].line == -1)
             break;
@@ -82,13 +87,15 @@ void print_chemin(chemin c){
 }
 
 
-void ajouter_coordonees_au_chemin(int col, int line, chemin c){
+void ajouter_coordonees_au_chemin_si_voisin(int col, int line, chemin c){
+    Case s = {col, line};
+    // printf("about to add %d;%d\n", col, line  );
     for(int i = 0 ; i < CHEMIN_LENGTH; i++)
-        if(c[i].col == -1 && c[i].line == -1){
-            Case s = {col, line};
-            c[i] = s;
-            return;
-        }
+        if(c[i].col == -1 && c[i].line == -1)
+            if(i == 0 || sont_voisines(c[i-1], s)){
+                c[i] = s;
+                return;
+            }
 }
 
 
@@ -100,34 +107,42 @@ int Case_in_chemin(int col, int line, chemin c){
 }
 
 int rec_find(laby l, chemin res, Case current, Case end){
+
     if(res == NULL)
         fprintf(stderr, "chemin doit etre declare avec malloc\n");
+
     if(res[CHEMIN_LENGTH-1].col == -123 && res[CHEMIN_LENGTH-1].line == -123)
         return 0; // une solution a deja ete trouvee
-    ajouter_coordonees_au_chemin(current.col, current.line, res);
 
-    if(current.col == end.col && current.line == end.line){
+    
+    if(cases_egales(current, end)){
         printf("resolu\n");
         Case end_signal = {-123, -123};
         res[CHEMIN_LENGTH-1] = end_signal;
         return 1;
     }
+    // marquer la case comme visitée : 
+    l[current.col][current.line] = VISITE;
+
+    //ajouter la case dans le chemin
+    ajouter_coordonees_au_chemin_si_voisin(current.col, current.line, res);
+
 
     // verifier les 4 directions
 
-    if(current.col - 1 >= 0 && !Case_in_chemin(current.col-1, current.line, res) && l[current.col-1][current.line] != MUR){
+    if(current.col - 1 >= 0 && !Case_in_chemin(current.col-1, current.line, res) && l[current.col-1][current.line] != MUR && l[current.col-1][current.line] !=  VISITE){
         Case next = {current.col-1, current.line};
         rec_find(l, res, next, end);   
     }
-    if(current.col+1 < COLS && !Case_in_chemin(current.col+1, current.line, res) && l[current.col+1][current.line] != MUR){
+    if(current.col+1 < COLS && !Case_in_chemin(current.col+1, current.line, res) && l[current.col+1][current.line] != MUR && l[current.col+1][current.line] !=  VISITE){
         Case next = {current.col+1, current.line};
         rec_find(l, res, next, end);
     }
-    if(current.line-1 >= 0 && !Case_in_chemin(current.col, current.line-1, res) && l[current.col][current.line-1] != MUR){
+    if(current.line-1 >= 0 && !Case_in_chemin(current.col, current.line-1, res) && l[current.col][current.line-1] != MUR && l[current.col][current.line-1] !=  VISITE){
         Case next = {current.col, current.line-1};
         rec_find(l, res, next, end);
     }
-    if(current.line+1 < LINES && !Case_in_chemin(current.col, current.line+1, res) && l[current.col][current.line+1] != MUR){
+    if(current.line+1 < LINES && !Case_in_chemin(current.col, current.line+1, res) && l[current.col][current.line+1] != MUR && l[current.col][current.line+1] !=  VISITE){
         Case next = {current.col, current.line+1};
         rec_find(l, res, next, end);
     }
@@ -161,13 +176,19 @@ Case* solve_labyrinth(laby l, int cols, int lines){
             }
 
     chemin reponse = malloc(sizeof(chemin) * CHEMIN_LENGTH);
+    
     for(int i = 0; i < CHEMIN_LENGTH; i++){
         reponse[i].col = -1;
         reponse[i].line = -1;
     }
+    
     rec_find(l, reponse, start, end);
+    
+    //remettre la case depart : 
+
+    l[start.col][start.line] = ENTREE;
+
     return reponse;
-    free(reponse);
 }
 
 void print_Case(Case s){
@@ -192,6 +213,9 @@ void print_labyrinth(laby l, int cols, int lines){
                     break;
                 case EXIT:
                     printf("-");
+                    break;
+                case VISITE:
+                    printf(" ");
                     break;
                 default:
                     printf("%c", l[i][j]);
@@ -279,3 +303,19 @@ laby creer_labyrinth(int cols, int lines){
     fclose(out);
     return current_laby;
 }
+
+int abs(int x){
+    if(x < 0)
+        return -x;
+    return x;
+}
+
+int sont_voisines(Case a, Case b){
+    if(a.col == b.col && abs(a.line - b.line) == 1)
+        return 1;
+    else if(a.line == b.line && abs(a.col - b.col) == 1)
+        return 1;
+    return 0;
+}
+
+int cases_egales(Case a, Case b){return a.col == b.col && a.line == b.line;}
