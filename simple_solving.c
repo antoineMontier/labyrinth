@@ -13,8 +13,8 @@
 #define VISITE (-124)
 #define END_SIGNAL (-123)
 
-#define COLS 11
-#define LINES 11
+#define COLS 9
+#define LINES 7
 
 #define CHEMIN_LENGTH (COLS * LINES)
 
@@ -46,6 +46,7 @@ int ajouter_au_dernier_voisin(chemin c, Case a_ajouter);
 
 int main(){
     laby l = creer_labyrinth(COLS, LINES);
+    printf("ok\n");
     print_labyrinth(l, COLS, LINES);
     chemin ans = solve_labyrinth(l, COLS, LINES);
     if(check_solution(l, ans))
@@ -230,6 +231,10 @@ void print_Case(Case s){
 
 
 void print_labyrinth(laby l, int cols, int lines){
+    //print upper indexs : 
+    for(int i = 0 ; i < lines ; i++)
+        printf("%d", i%10);
+    printf("|+\n");
     for(int i=0; i< cols; i++){
         for(int j=0; j< lines; j++)
             switch(l[i][j]){
@@ -252,7 +257,7 @@ void print_labyrinth(laby l, int cols, int lines){
                     printf("%c", l[i][j]);
                     break;
             }
-        printf("\n");
+        printf("|%d\n", i);
     }
 }
 
@@ -313,9 +318,8 @@ laby creer_labyrinth(int cols, int lines){
     if (out == NULL) {
         printf("Failed to open file.\n");
     }
-
     laby current_laby = (laby)malloc(cols * sizeof(int *));
-    for (int i = 0; i < lines; i++) {
+    for (int i = 0; i < cols; i++) {
         current_laby[i] = (int *)malloc(lines * sizeof(int));
     }
 
