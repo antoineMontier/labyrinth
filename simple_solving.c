@@ -48,8 +48,8 @@ int main(){
     laby l = creer_labyrinth(COLS, LINES);
     print_labyrinth(l, COLS, LINES);
     chemin ans = solve_labyrinth(l, COLS, LINES);
-    // if(check_solution(l, ans))
-    //     printf("Solution OK\n");
+    if(check_solution(l, ans))
+        printf("Solution OK\n");
     print_chemin(ans);
     
     print_solution(l, COLS, LINES, ans);
@@ -109,11 +109,9 @@ void ajouter_coordonees_au_chemin_au_dernier_voisin(int col, int line, chemin c)
 
 int ajouter_au_dernier_voisin(chemin c, Case a_ajouter){
     for(int i = CHEMIN_LENGTH-2; i >= 0; i--){
-        if(!(c[i].col == -1 && c[i].line == -1)){// skipper toutes les cases à la fin de coordonnees{-1 ; 1}
-            if(sont_voisines(c[i], a_ajouter)){
-                c[i+1] = a_ajouter;
-                return 1; // case ajoutee
-            }
+        if(!(c[i].col == -1 && c[i].line == -1) && sont_voisines(c[i], a_ajouter)){// skipper toutes les cases à la fin de coordonnees{-1 ; 1}
+            c[i+1] = a_ajouter;
+            return 1; // case ajoutee
         }
     }
     return 0; // aucune case ajoutee
@@ -344,18 +342,8 @@ laby creer_labyrinth(int cols, int lines){
     return current_laby;
 }
 
-int abs(int x){
-    if(x < 0)
-        return -x;
-    return x;
-}
 
-int sont_voisines(Case a, Case b){
-    if(a.col == b.col && abs(a.line - b.line) == 1)
-        return 1;
-    else if(a.line == b.line && abs(a.col - b.col) == 1)
-        return 1;
-    return 0;
-}
 
+int abs(int x){return x < 0 ? -x : x;}
+int sont_voisines(Case a, Case b){return (a.col == b.col && abs(a.line - b.line) == 1) || (a.line == b.line && abs(a.col - b.col) == 1);}
 int cases_egales(Case a, Case b){return a.col == b.col && a.line == b.line;}
