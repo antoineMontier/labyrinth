@@ -42,15 +42,15 @@ int abs(int x);
 int sont_voisines(Case a, Case b); // ne fonctionne pas en diagonale
 int cases_egales(Case a, Case b);
 int ajouter_au_dernier_voisin(chemin c, Case a_ajouter);
-
+void nettoyer_chemin(chemin c); // le probleme est que parfois les cases se suivent bien sauf entre l'avant derniere et la dernier (=arrivee) il s'intercale des cases deja visitees
 
 int main(){
     laby l = creer_labyrinth(COLS, LINES);
     print_labyrinth(l, COLS, LINES);
     chemin ans = solve_labyrinth(l, COLS, LINES);
+    print_chemin(ans);
     if(check_solution(l, ans))
         printf("Solution OK\n");
-    print_chemin(ans);
     
     print_solution(l, COLS, LINES, ans);
     free(ans);
@@ -58,6 +58,24 @@ int main(){
     free_labyrinth(&l, COLS, LINES);
     return 0;
 }
+
+void nettoyer_chemin(chemin c){
+    // se placer à l'indice fin : 
+    int ind_fin = CHEMIN_LENGTH-2;
+    while(ind_fin >= 0 && c[ind_fin].col == -1 && c[ind_fin].line == -1) ind_fin--;
+
+    if(ind_fin == 0) // chemin n'a aucune case valable, rien à nettoyer
+        return;
+    
+    // chercher le premier voisin en continuant de remonter vers le depart
+    while(ind_fin >=0 && !sont_voisines(c[ind_fin], c[ind_fin-1])){
+        c[ind_fin -1] = c[ind_fin];
+        c[ind_fin].col = -1;
+        c[ind_fin].line = -1;
+        --ind_fin;
+    }
+}
+
 
 void print_solution(laby l, int cols, int lines, chemin c){
     // ajouter des lettres dans le labyrinth pour montrer le chemin pris
@@ -132,8 +150,6 @@ void rec_find(laby l, chemin res, Case current, Case end){
 
     if(res[CHEMIN_LENGTH-1].col == END_SIGNAL && res[CHEMIN_LENGTH-1].line == END_SIGNAL) // check end_signal
         return; // une solution a deja ete trouvee
-
-    print_Case(current);
     
     if(cases_egales(current, end)){
 
@@ -163,24 +179,24 @@ void rec_find(laby l, chemin res, Case current, Case end){
 
     // verifier les 4 directions
 
-    if(current.col - 1 >= 0 && !Case_in_chemin(current.col-1, current.line, res) && l[current.col-1][current.line] != MUR && l[current.col-1][current.line] !=  VISITE){
-        Case next = {current.col-1, current.line};
-        printf("going up\n");
-        rec_find(l, res, next, end);   
-    }
-    if(current.col+1 < LINES && !Case_in_chemin(current.col+1, current.line, res) && l[current.col+1][current.line] != MUR && l[current.col+1][current.line] !=  VISITE){
-        Case next = {current.col+1, current.line};
-        printf("going down\n");
-        rec_find(l, res, next, end);
-    }
     if(current.line-1 >= 0 && !Case_in_chemin(current.col, current.line-1, res) && l[current.col][current.line-1] != MUR && l[current.col][current.line-1] !=  VISITE){
         Case next = {current.col, current.line-1};
-        printf("going left\n");
+        // printf("going left\n");
         rec_find(l, res, next, end);
+    }
+    if(current.col - 1 >= 0 && !Case_in_chemin(current.col-1, current.line, res) && l[current.col-1][current.line] != MUR && l[current.col-1][current.line] !=  VISITE){
+        Case next = {current.col-1, current.line};
+        // printf("going up\n");
+        rec_find(l, res, next, end);   
     }
     if(current.line+1 < COLS && !Case_in_chemin(current.col, current.line+1, res) && l[current.col][current.line+1] != MUR && l[current.col][current.line+1] !=  VISITE){
         Case next = {current.col, current.line+1};
-        printf("going right\n");
+        // printf("going right\n");
+        rec_find(l, res, next, end);
+    }
+    if(current.col+1 < LINES && !Case_in_chemin(current.col+1, current.line, res) && l[current.col+1][current.line] != MUR && l[current.col+1][current.line] !=  VISITE){
+        Case next = {current.col+1, current.line};
+        // printf("going down\n");
         rec_find(l, res, next, end);
     }
 }
@@ -222,6 +238,10 @@ Case* solve_labyrinth(laby l, int cols, int lines){
     //remettre la case depart : 
 
     l[start.col][start.line] = ENTREE;
+    // nettoyer la reponse si necessaire : 
+    if(!check_solution(l, reponse)){
+        nettoyer_chemin(reponse);
+    }
 
     return reponse;
 }
@@ -272,31 +292,19 @@ int check_solution(laby l, Case*Case_tab){
     if(l[Case_tab[0].col][Case_tab[0].line] != ENTREE)
         return 0; //false
     int index_end;
-    for(index_end = 0; index_end < CHEMIN_LENGTH-1 ; index_end++)
+    for(index_end = 0; index_end < CHEMIN_LENGTH-2 ; index_end++)
         if(Case_tab[index_end+1].col == -1 && Case_tab[index_end+1].line == -1)
             break;
-        
+
     if(index_end == CHEMIN_LENGTH - 1)
         return 0; // pas de fin de chemin
 
     //verifier que les cases sont voisines
     for(int i = 1; i <= index_end ; i++){
-        //meme colonne
-        if(Case_tab[i].col == Case_tab[i-1].col){
-            //verifier que la difference de lignes est 1.
-            if(fabs(Case_tab[i].line - Case_tab[i-1].line) != 1)
-                return 0; // pas voisins
-        }
-        //same line
-        else if(Case_tab[i].line == Case_tab[i-1].line){
-            //verifier que la difference de colonnes est 1.
-            if(fabs(Case_tab[i].col - Case_tab[i-1].col) != 1)
-                return 0; // pas voisins
-        }
-        else{
-            return 0;// pas voisins
-        }
+        if(!sont_voisines(Case_tab[i], Case_tab[i-1]))
+            return 0;
     }
+
     return 1; // tous tests passes
 }
 
