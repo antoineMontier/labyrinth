@@ -5,7 +5,7 @@
 #include <unistd.h>
 #include <math.h>
 
-
+#define UNUSED (-1)
 #define MUR 0
 #define WAY 1
 #define ENTREE 2
@@ -61,7 +61,7 @@ int main(){
 void nettoyer_chemin(chemin c){
     // se placer à l'indice fin : 
     int ind_fin = CHEMIN_LENGTH-2;
-    while(ind_fin >= 0 && c[ind_fin].col == -1 && c[ind_fin].line == -1) ind_fin--;
+    while(ind_fin >= 0 && c[ind_fin].col == UNUSED && c[ind_fin].line == UNUSED) ind_fin--;
 
     if(ind_fin == 0) // chemin n'a aucune case valable, rien à nettoyer
         return;
@@ -69,7 +69,7 @@ void nettoyer_chemin(chemin c){
     // chercher le premier voisin en continuant de remonter vers le depart
     while(ind_fin >=0 && !sont_voisines(c[ind_fin], c[ind_fin-1])){
         c[ind_fin -1] = c[ind_fin];
-        c[ind_fin] = (Case){-1 , -1};
+        c[ind_fin] = (Case){UNUSED , UNUSED};
         --ind_fin;
     }
 }
@@ -78,7 +78,7 @@ void nettoyer_chemin(chemin c){
 void print_solution(laby l, int cols, int lines, chemin c){
     // ajouter des lettres dans le labyrinth pour montrer le chemin pris
     for(int i=1; i<CHEMIN_LENGTH-1 ; ++i){
-        if(c[i+1].col == -1 && c[i+1].line == -1)
+        if(c[i+1].col == UNUSED && c[i+1].line == UNUSED)
             break;
         else
             l[c[i].col][c[i].line] = i < 27 ? 'a' + i - 1 : 'A' + i - 27; 
@@ -88,7 +88,7 @@ void print_solution(laby l, int cols, int lines, chemin c){
 
     // retirer les lettres
     for(int i=1; i<CHEMIN_LENGTH ; ++i){
-        if(c[i].col == -1 && c[i].line == -1)
+        if(c[i].col == UNUSED&& c[i].line ==UNUSED)
             break;
         else
             l[c[i].col][c[i].line] = WAY;
@@ -99,7 +99,7 @@ void print_solution(laby l, int cols, int lines, chemin c){
 void print_chemin(chemin c){
     printf("[");
     for(int i = 0; i < CHEMIN_LENGTH ; i++){
-        if(c[i].col == -1 && c[i].line == -1)
+        if(c[i].col == UNUSED && c[i].line == UNUSED)
             break;
         printf(" %d;%d ", c[i].col, c[i].line);
     }
@@ -113,7 +113,7 @@ void ajouter_coordonees_au_chemin_au_dernier_voisin(int col, int line, chemin c)
     Case s = {col, line};
     // printf("about to add %d;%d\n", col, line  );
     for(int i = 0 ; i < CHEMIN_LENGTH; i++)
-        if(c[i].col == -1 && c[i].line == -1){
+        if(c[i].col == UNUSED && c[i].line == UNUSED){
             if(i == 0){
                 c[i] = s;
                 return;
@@ -125,7 +125,7 @@ void ajouter_coordonees_au_chemin_au_dernier_voisin(int col, int line, chemin c)
 
 int ajouter_au_dernier_voisin(chemin c, Case a_ajouter){
     for(int i = CHEMIN_LENGTH-2; i >= 0; i--){
-        if(!(c[i].col == -1 && c[i].line == -1) && sont_voisines(c[i], a_ajouter)){// skipper toutes les cases à la fin de coordonnees{-1 ; 1}
+        if(!(c[i].col == UNUSED && c[i].line == UNUSED) && sont_voisines(c[i], a_ajouter)){// skipper toutes les cases à la fin de coordonnees{-1 ; 1}
             c[i+1] = a_ajouter;
             return 1; // case ajoutee
         }
@@ -153,7 +153,7 @@ void rec_find(laby l, chemin res, Case current, Case end){
 
         // ajouter à la main la derniere case dans le chemin :
         for(int i=0; i<CHEMIN_LENGTH; i++)
-            if(res[i].col == -1 && res[i].line == -1){
+            if(res[i].col == UNUSED && res[i].line == UNUSED){
                 res[i] = end;
                 break;
             }
@@ -211,7 +211,7 @@ Case* solve_labyrinth(laby l, int cols, int lines){
     chemin reponse = malloc(sizeof(chemin) * CHEMIN_LENGTH);
     
     for(int i = 0; i < CHEMIN_LENGTH; i++)
-        reponse[i] = (Case){-1, -1};
+        reponse[i] = (Case){UNUSED, UNUSED};
     
     rec_find(l, reponse, start, end);
     //remettre la case depart : 
@@ -267,8 +267,9 @@ int check_solution(laby l, Case*Case_tab){
     if(l[Case_tab[0].col][Case_tab[0].line] != ENTREE)
         return 0; //false
     int index_end;
+    //avancer index_end jusqu'au cases inutilisees
     for(index_end = 0; index_end < CHEMIN_LENGTH-2 ; index_end++)
-        if(Case_tab[index_end+1].col == -1 && Case_tab[index_end+1].line == -1)
+        if(Case_tab[index_end+1].col == UNUSED && Case_tab[index_end+1].line == UNUSED)
             break;
 
     if(index_end == CHEMIN_LENGTH - 1)
