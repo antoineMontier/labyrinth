@@ -54,7 +54,6 @@ int main(){
     
     print_solution(l, COLS, LINES, ans);
     free(ans);
-    
     free_labyrinth(&l, COLS, LINES);
     return 0;
 }
@@ -153,23 +152,19 @@ void rec_find(laby l, chemin res, Case current, Case end){
     
     if(cases_egales(current, end)){
 
-        // ajouter à la main la derniere case dans le chemin : // ne résouds pas le souci de cases en trop dans le chemin solution
+        // ajouter à la main la derniere case dans le chemin :
         for(int i=0; i<CHEMIN_LENGTH; i++)
             if(res[i].col == -1 && res[i].line == -1){
                 res[i] = end;
                 break;
             }
 
-        // marquer toutes les cases comme visitées :  // ne résouds pas le souci de cases en trop dans le chemin solution
-        for(int i = 0 ; i < LINES ; i++)
-            for(int j = 0 ; j < COLS ; j++)
-                if(l[i][j] == WAY)
-                    l[i][j] = VISITE;
 
         Case end_signal = {END_SIGNAL, END_SIGNAL};
         res[CHEMIN_LENGTH-1] = end_signal;
         return;
     }
+
     // marquer la case comme visitée : 
     l[current.col][current.line] = VISITE;
 
@@ -239,9 +234,9 @@ Case* solve_labyrinth(laby l, int cols, int lines){
 
     l[start.col][start.line] = ENTREE;
     // nettoyer la reponse si necessaire : 
-    if(!check_solution(l, reponse)){
+    if(!check_solution(l, reponse))
         nettoyer_chemin(reponse);
-    }
+
 
     return reponse;
 }
