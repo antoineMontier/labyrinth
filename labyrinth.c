@@ -1,5 +1,93 @@
 #include "labyrinth.h"
 
+chemin solve_labyrinth_threads(Laby l){
+    // trouvons le depart
+    Case start = (Case){UNUSED, UNUSED};
+    for(int i=0; i< l.lignes; i++)
+        for(int j=0; j< l.cols; j++)
+            if(l.m[i][j] == ENTREE){
+                start.col = i;
+                start.line = j;
+                //arret des boucles
+                i = l.lignes;
+                j = l.cols;
+            }
+
+    // trouvons l'arivee
+    Case end = (Case){UNUSED, UNUSED};
+    for(int i=0; i< l.lignes; i++)
+        for(int j=0; j< l.cols; j++)
+            if(l.m[i][j] == EXIT){
+                end.col = i;
+                end.line = j;
+                //arret des boucles
+                i = l.lignes;
+                j = l.cols;
+            }
+
+    if(cases_egales(start, (Case){-1, -1}) || cases_egales(end, (Case){-1, -1})){
+        printf("Impossible de trouver l'entree ou la sortie\n");
+        exit(1);
+    }
+
+    chemin reponse = malloc(sizeof(chemin) * CHEMIN_LENGTH);
+    
+    for(int i = 0; i < CHEMIN_LENGTH; i++)
+        reponse[i] = (Case){UNUSED, UNUSED};
+
+    // lancer la recursivite
+    pthread_t tids[NB_THREAD];
+    rec_find_thread(l, reponse, start, end);
+
+    //remettre la case depart : 
+    l.m[start.col][start.line] = ENTREE;
+
+    // nettoyer la reponse si necessaire : 
+    if(!check_solution(l, reponse)) nettoyer_chemin(reponse);
+
+    return reponse;
+}
+
+
+void rec_find_thread(Laby l, chemin res, Case current, Case end, int executed_by_thread, pthread_t*thread_tab){
+
+    if(res[CHEMIN_LENGTH-1].col == END_SIGNAL && res[CHEMIN_LENGTH-1].line == END_SIGNAL) // check end_signal
+        return; // une solution a deja ete trouvee
+    
+    if(cases_egales(current, end)){
+
+        // ajouter à la main la derniere case dans le chemin :
+        for(int i=0; i<CHEMIN_LENGTH; i++)
+            if(res[i].col == UNUSED && res[i].line == UNUSED){
+                res[i] = end;
+                break;
+            }
+        res[CHEMIN_LENGTH-1] = (Case){END_SIGNAL, END_SIGNAL};
+        return;
+    }
+
+    // marquer la case comme visitée : 
+    l.m[current.col][current.line] = VISITE;
+
+    //ajouter la case dans le chemin
+    ajouter_coordonees_au_chemin_au_dernier_voisin(current.col, current.line, res);
+
+    // verifier les 4 directions
+    if(current.line-1 >= 0 && !Case_in_chemin(current.col, current.line-1, res) && l.m[current.col][current.line-1] != MUR && l.m[current.col][current.line-1] !=  VISITE) // left
+        rec_find(l, res, (Case){current.col, current.line-1}, end);
+    if(current.col - 1 >= 0 && !Case_in_chemin(current.col-1, current.line, res) && l.m[current.col-1][current.line] != MUR && l.m[current.col-1][current.line] !=  VISITE) // up
+        rec_find(l, res, (Case){current.col-1, current.line}, end);   
+    if(current.line+1 < l.cols && !Case_in_chemin(current.col, current.line+1, res) && l.m[current.col][current.line+1] != MUR && l.m[current.col][current.line+1] !=  VISITE) // right
+        rec_find(l, res, (Case){current.col, current.line+1}, end);
+    if(current.col+1 < l.lignes && !Case_in_chemin(current.col+1, current.line, res) && l.m[current.col+1][current.line] != MUR && l.m[current.col+1][current.line] !=  VISITE) // down
+        rec_find(l, res, (Case){current.col+1, current.line}, end);
+
+    if(executed_by_thread)
+        pthread_exit();
+}
+
+
+
 void nettoyer_chemin(chemin c){
     // se placer à l'indice fin : 
     int ind_fin = CHEMIN_LENGTH-2;
@@ -119,7 +207,7 @@ void rec_find(Laby l, chemin res, Case current, Case end){
         rec_find(l, res, (Case){current.col+1, current.line}, end);
 }
 
-Case* solve_labyrinth(Laby l){
+chemin solve_labyrinth(Laby l){
     // trouvons le depart
     Case start = (Case){UNUSED, UNUSED};
     for(int i=0; i< l.lignes; i++)
@@ -153,6 +241,7 @@ Case* solve_labyrinth(Laby l){
     
     for(int i = 0; i < CHEMIN_LENGTH; i++)
         reponse[i] = (Case){UNUSED, UNUSED};
+
     // lancer la recursivite
     rec_find(l, reponse, start, end);
 
