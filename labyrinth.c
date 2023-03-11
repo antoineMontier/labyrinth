@@ -49,7 +49,7 @@ chemin solve_labyrinth_threads(Laby l){
 }
 
 
-void rec_find_thread(Laby l, chemin res, Case current, Case end, int executed_by_thread, pthread_t*thread_tab){
+void rec_find_thread(Laby l, chemin res, Case current, Case end){
 
     if(res[CHEMIN_LENGTH-1].col == END_SIGNAL && res[CHEMIN_LENGTH-1].line == END_SIGNAL) // check end_signal
         return; // une solution a deja ete trouvee
@@ -73,14 +73,23 @@ void rec_find_thread(Laby l, chemin res, Case current, Case end, int executed_by
     ajouter_coordonees_au_chemin_au_dernier_voisin(current.col, current.line, res);
 
     // verifier les 4 directions
-    if(current.line-1 >= 0 && !Case_in_chemin(current.col, current.line-1, res) && l.m[current.col][current.line-1] != MUR && l.m[current.col][current.line-1] !=  VISITE) // left
-        rec_find(l, res, (Case){current.col, current.line-1}, end);
-    if(current.col - 1 >= 0 && !Case_in_chemin(current.col-1, current.line, res) && l.m[current.col-1][current.line] != MUR && l.m[current.col-1][current.line] !=  VISITE) // up
+    if(current.line-1 >= 0 && !Case_in_chemin(current.col, current.line-1, res) && l.m[current.col][current.line-1] != MUR && l.m[current.col][current.line-1] !=  VISITE){ // left
+    }
+    if(current.col - 1 >= 0 && !Case_in_chemin(current.col-1, current.line, res) && l.m[current.col-1][current.line] != MUR && l.m[current.col-1][current.line] !=  VISITE){ // up
+
+
         rec_find(l, res, (Case){current.col-1, current.line}, end);   
-    if(current.line+1 < l.cols && !Case_in_chemin(current.col, current.line+1, res) && l.m[current.col][current.line+1] != MUR && l.m[current.col][current.line+1] !=  VISITE) // right
+    }
+    if(current.line+1 < l.cols && !Case_in_chemin(current.col, current.line+1, res) && l.m[current.col][current.line+1] != MUR && l.m[current.col][current.line+1] !=  VISITE){ // right
+
+
         rec_find(l, res, (Case){current.col, current.line+1}, end);
-    if(current.col+1 < l.lignes && !Case_in_chemin(current.col+1, current.line, res) && l.m[current.col+1][current.line] != MUR && l.m[current.col+1][current.line] !=  VISITE) // down
+    }
+    if(current.col+1 < l.lignes && !Case_in_chemin(current.col+1, current.line, res) && l.m[current.col+1][current.line] != MUR && l.m[current.col+1][current.line] !=  VISITE){ // down
+
+
         rec_find(l, res, (Case){current.col+1, current.line}, end);
+    }
 
     if(executed_by_thread)
         pthread_exit();

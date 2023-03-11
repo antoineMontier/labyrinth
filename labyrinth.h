@@ -9,7 +9,6 @@
 #define EXIT 3
 #define VISITE (-124)
 #define END_SIGNAL (-123)
-#define NB_THREAD 8
 
 #define CHEMIN_LENGTH (500)
 
