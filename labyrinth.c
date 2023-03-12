@@ -74,6 +74,9 @@ void rec_find_thread(Laby l, chemin res, Case current, Case end){
 
     // verifier les 4 directions
     if(current.line-1 >= 0 && !Case_in_chemin(current.col, current.line-1, res) && l.m[current.col][current.line-1] != MUR && l.m[current.col][current.line-1] !=  VISITE){ // left
+
+
+        rec_find(l, res, (Case){current.col, current.line-1}, end); 
     }
     if(current.col - 1 >= 0 && !Case_in_chemin(current.col-1, current.line, res) && l.m[current.col-1][current.line] != MUR && l.m[current.col-1][current.line] !=  VISITE){ // up
 
@@ -120,7 +123,7 @@ void print_solution(Laby l, chemin c){
         if(c[i+1].col == UNUSED && c[i+1].line == UNUSED)
             break;
         else
-            l.m[c[i].col][c[i].line] = i < 27 ? 'a' + i - 1 : 'A' + i - 27; 
+            l.m[c[i].col][c[i].line] = i < 27 ? 'a' + i - 1 : 'A' + i - 27; // affichage du chemin avec les characteres ascii a,b->z,A,B->Z
         }
 
     print_labyrinth(l);
