@@ -52,10 +52,13 @@ chemin solve_labyrinth_threads(Laby l){
     for(int i = 0; i < CHEMIN_LENGTH; i++)
         reponse[i] = (Case){UNUSED, UNUSED};
 
+    // preparer de l'espace pour les threads
+    Thread_manager tm = creer_threads();
     // lancer la recursivite
-    pthread_t tids[NB_THREAD];
     rec_find_thread(l, reponse, start, end);
-
+    // rendre l'espace utilisé
+    free_threads(&tm);
+    
     //remettre la case depart : 
     l.m[start.col][start.line] = ENTREE;
 
@@ -66,11 +69,12 @@ chemin solve_labyrinth_threads(Laby l){
 }
 
 
-void rec_find_thread(void* l, void* res, void* current, void* end){
+void rec_find_thread(void* l, void* res, void* current, void* end, void* manager){
     chemin _res = (chemin)res;
     Laby* _l = (Laby*)l;
     Case* _current = (Case*)current;
     Case* _end = (Case*)end;
+    Thread_manager* _manager = (Thread_manager*)manager;
 
     if(_res[CHEMIN_LENGTH-1].col == END_SIGNAL && _res[CHEMIN_LENGTH-1].line == END_SIGNAL) // check end_signal
         pthread_cancel(pthread_self()); // une solution a deja ete trouvee // equivalent à return; mais plus safe
