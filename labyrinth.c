@@ -49,53 +49,54 @@ chemin solve_labyrinth_threads(Laby l){
 }
 
 
-void rec_find_thread(Laby l, chemin res, Case current, Case end){
+void rec_find_thread(void* l, void* res, void* current, void* end){
+    chemin _res = (chemin)res;
+    Laby _l = (Laby)l;
+    Case _current = (Case)current;
+    Case _end = (Case)end;
 
-    if(res[CHEMIN_LENGTH-1].col == END_SIGNAL && res[CHEMIN_LENGTH-1].line == END_SIGNAL) // check end_signal
+    if(_res[CHEMIN_LENGTH-1].col == END_SIGNAL && _res[CHEMIN_LENGTH-1].line == END_SIGNAL) // check end_signal
         return; // une solution a deja ete trouvee
     
-    if(cases_egales(current, end)){
+    if(cases_egales(_current, _end)){
 
         // ajouter à la main la derniere case dans le chemin :
         for(int i=0; i<CHEMIN_LENGTH; i++)
-            if(res[i].col == UNUSED && res[i].line == UNUSED){
-                res[i] = end;
+            if(_res[i].col == UNUSED && _res[i].line == UNUSED){
+                _res[i] = _end;
                 break;
             }
-        res[CHEMIN_LENGTH-1] = (Case){END_SIGNAL, END_SIGNAL};
+        _res[CHEMIN_LENGTH-1] = (Case){END_SIGNAL, END_SIGNAL};
         return;
     }
 
     // marquer la case comme visitée : 
-    l.m[current.col][current.line] = VISITE;
+    _l.m[_current.col][_current.line] = VISITE;
 
     //ajouter la case dans le chemin
-    ajouter_coordonees_au_chemin_au_dernier_voisin(current.col, current.line, res);
+    ajouter_coordonees_au_chemin_au_dernier_voisin(_current.col, _current.line, _res);
 
     // verifier les 4 directions
-    if(current.line-1 >= 0 && !Case_in_chemin(current.col, current.line-1, res) && l.m[current.col][current.line-1] != MUR && l.m[current.col][current.line-1] !=  VISITE){ // left
+    if(_current.line-1 >= 0 && !Case_in_chemin(_current.col, _current.line-1, _res) && _l.m[_current.col][_current.line-1] != MUR && _l.m[_current.col][_current.line-1] !=  VISITE){ // left
 
 
-        rec_find(l, res, (Case){current.col, current.line-1}, end); 
+        rec_find(_l, _res, (Case){_current.col, _current.line-1}, _end); 
     }
-    if(current.col - 1 >= 0 && !Case_in_chemin(current.col-1, current.line, res) && l.m[current.col-1][current.line] != MUR && l.m[current.col-1][current.line] !=  VISITE){ // up
+    if(_current.col - 1 >= 0 && !Case_in_chemin(_current.col-1, _current.line, _res) && _l.m[_current.col-1][_current.line] != MUR && _l.m[_current.col-1][_current.line] !=  VISITE){ // up
 
 
-        rec_find(l, res, (Case){current.col-1, current.line}, end);   
+        rec_find(_l, _res, (Case){_current.col-1, _current.line}, _end);   
     }
-    if(current.line+1 < l.cols && !Case_in_chemin(current.col, current.line+1, res) && l.m[current.col][current.line+1] != MUR && l.m[current.col][current.line+1] !=  VISITE){ // right
+    if(_current.line+1 < _l.cols && !Case_in_chemin(_current.col, _current.line+1, _res) && _l.m[_current.col][_current.line+1] != MUR && _l.m[_current.col][_current.line+1] !=  VISITE){ // right
 
 
-        rec_find(l, res, (Case){current.col, current.line+1}, end);
+        rec_find(_l, _res, (Case){_current.col, _current.line+1}, _end);
     }
-    if(current.col+1 < l.lignes && !Case_in_chemin(current.col+1, current.line, res) && l.m[current.col+1][current.line] != MUR && l.m[current.col+1][current.line] !=  VISITE){ // down
+    if(_current.col+1 < _l.lignes && !Case_in_chemin(_current.col+1, _current.line, _res) && _l.m[_current.col+1][_current.line] != MUR && _l.m[_current.col+1][_current.line] !=  VISITE){ // down
 
 
-        rec_find(l, res, (Case){current.col+1, current.line}, end);
+        rec_find(_l, _res, (Case){_current.col+1, _current.line}, _end);
     }
-
-    if(executed_by_thread)
-        pthread_exit();
 }
 
 
