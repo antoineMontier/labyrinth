@@ -1,5 +1,22 @@
 #include "labyrinth.h"
 
+Thread_manager creer_threads(){
+    Thread_manager res;
+    res.used = malloc(NB_THREAD*sizeof(int));
+    res.ids = malloc(NB_THREAD*sizeof(pthread_t));
+    return res;
+}
+
+void free_threads(Thread_manager *t){
+    if(t == NULL)
+        return;
+    if(t->used != NULL)
+        free(t->used);
+    if(t->ids != NULL)
+        free(t->ids);
+    t = NULL;
+}
+
 chemin solve_labyrinth_threads(Laby l){
     // trouvons le depart
     Case start = (Case){UNUSED, UNUSED};
@@ -51,14 +68,14 @@ chemin solve_labyrinth_threads(Laby l){
 
 void rec_find_thread(void* l, void* res, void* current, void* end){
     chemin _res = (chemin)res;
-    Laby _l = (Laby)l;
-    Case _current = (Case)current;
-    Case _end = (Case)end;
+    Laby* _l = (Laby*)l;
+    Case* _current = (Case*)current;
+    Case* _end = (Case*)end;
 
     if(_res[CHEMIN_LENGTH-1].col == END_SIGNAL && _res[CHEMIN_LENGTH-1].line == END_SIGNAL) // check end_signal
-        return; // une solution a deja ete trouvee
+        pthread_cancel(pthread_self()); // une solution a deja ete trouvee // equivalent à return; mais plus safe
     
-    if(cases_egales(_current, _end)){
+    if(cases_egales(*_current, *_end)){
 
         // ajouter à la main la derniere case dans le chemin :
         for(int i=0; i<CHEMIN_LENGTH; i++)

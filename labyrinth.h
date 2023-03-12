@@ -9,6 +9,7 @@
 #define EXIT 3
 #define VISITE (-124)
 #define END_SIGNAL (-123)
+#define NB_THREAD 8
 
 #define CHEMIN_LENGTH (500)
 
@@ -24,9 +25,15 @@ typedef struct{
     int line;
 } Case;
 
+typedef struct{
+    pthread_t* ids;
+    int* used;
+} Thread_manager;
+
 typedef Case* chemin;
 
-
+Thread_manager creer_threads();
+void free_threads(Thread_manager *t);
 Laby creer_labyrinth(int cols, int lines);
 int check_solution(Laby, chemin);
 void free_labyrinth(Laby*);
