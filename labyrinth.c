@@ -56,7 +56,9 @@ chemin solve_labyrinth_threads(Laby l){
     Thread_manager tm = creer_threads();
     // lancer la recursivite
     Thread_args args = {&l, reponse, &start, &end, &tm};
+    printf("avant le lancement de la recursivite\n");
     rec_find_thread((void*)&args);
+    printf("apres le lancement de la recursivite\n");
     // rendre l'espace utilisé
     free_threads(&tm);
     
