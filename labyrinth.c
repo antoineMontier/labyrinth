@@ -68,6 +68,14 @@ chemin solve_labyrinth_threads(Laby l){
     return reponse;
 }
 
+void end_actual_thread_signal(Thread_manager *t){
+    for(int i = 0 ; i  < NB_THREAD ; i++)
+        if(pthread_self() == t->ids[i]){
+            t->used[i] = 0;
+            return;
+        }
+    pthread_cancel(pthread_self());
+}
 
 void rec_find_thread(void* l, void* res, void* current, void* end, void* manager){
     chemin _res = (chemin)res;
@@ -77,47 +85,55 @@ void rec_find_thread(void* l, void* res, void* current, void* end, void* manager
     Thread_manager* _manager = (Thread_manager*)manager;
 
     if(_res[CHEMIN_LENGTH-1].col == END_SIGNAL && _res[CHEMIN_LENGTH-1].line == END_SIGNAL) // check end_signal
-        pthread_cancel(pthread_self()); // une solution a deja ete trouvee // equivalent à return; mais plus safe
+        end_actual_thread_signal(_manager); // une solution a deja ete trouvee
     
     if(cases_egales(*_current, *_end)){
 
         // ajouter à la main la derniere case dans le chemin :
         for(int i=0; i<CHEMIN_LENGTH; i++)
             if(_res[i].col == UNUSED && _res[i].line == UNUSED){
-                _res[i] = _end;
+                _res[i] = (*_end);
                 break;
             }
         _res[CHEMIN_LENGTH-1] = (Case){END_SIGNAL, END_SIGNAL};
-        return;
+        end_actual_thread_signal(_manager); // une solution a deja ete trouvee
     }
 
     // marquer la case comme visitée : 
-    _l.m[_current.col][_current.line] = VISITE;
+    _l->m[_current->col][_current->line] = VISITE;
 
     //ajouter la case dans le chemin
-    ajouter_coordonees_au_chemin_au_dernier_voisin(_current.col, _current.line, _res);
+    ajouter_coordonees_au_chemin_au_dernier_voisin(_current->col, _current->line, _res);
+    pthread_t threads_crees[4];
+    for(int i = 0; i < 4 ; i++) threads_crees[i] = 0;
+    // verifier les 4 directions et lancer une récursivité avec un thread si possible (s'il en reste) ou sinon lancer une recursitivté simple
+    if(_current->line-1 >= 0 && !Case_in_chemin(_current->col, _current->line-1, _res) && _l.m[_current->col][_current->line-1] != MUR && _l.m[_current->col][_current->line-1] !=  VISITE){ // left
 
-    // verifier les 4 directions
-    if(_current.line-1 >= 0 && !Case_in_chemin(_current.col, _current.line-1, _res) && _l.m[_current.col][_current.line-1] != MUR && _l.m[_current.col][_current.line-1] !=  VISITE){ // left
 
-
-        rec_find(_l, _res, (Case){_current.col, _current.line-1}, _end); 
+        rec_find(_l, _res, (Case){_current->col, _current->line-1}, _end); 
     }
-    if(_current.col - 1 >= 0 && !Case_in_chemin(_current.col-1, _current.line, _res) && _l.m[_current.col-1][_current.line] != MUR && _l.m[_current.col-1][_current.line] !=  VISITE){ // up
+    if(_current->col - 1 >= 0 && !Case_in_chemin(_current->col-1, _current->line, _res) && _l.m[_current->col-1][_current->line] != MUR && _l.m[_current->col-1][_current->line] !=  VISITE){ // up
 
 
-        rec_find(_l, _res, (Case){_current.col-1, _current.line}, _end);   
+        rec_find(_l, _res, (Case){_current->col-1, _current->line}, _end);   
     }
-    if(_current.line+1 < _l.cols && !Case_in_chemin(_current.col, _current.line+1, _res) && _l.m[_current.col][_current.line+1] != MUR && _l.m[_current.col][_current.line+1] !=  VISITE){ // right
+    if(_current->line+1 < _l.cols && !Case_in_chemin(_current->col, _current->line+1, _res) && _l.m[_current->col][_current->line+1] != MUR && _l.m[_current->col][_current->line+1] !=  VISITE){ // right
 
 
-        rec_find(_l, _res, (Case){_current.col, _current.line+1}, _end);
+        rec_find(_l, _res, (Case){_current->col, _current->line+1}, _end);
     }
-    if(_current.col+1 < _l.lignes && !Case_in_chemin(_current.col+1, _current.line, _res) && _l.m[_current.col+1][_current.line] != MUR && _l.m[_current.col+1][_current.line] !=  VISITE){ // down
+    if(_current->col+1 < _l.lignes && !Case_in_chemin(_current->col+1, _current->line, _res) && _l.m[_current->col+1][_current->line] != MUR && _l.m[_current->col+1][_current->line] !=  VISITE){ // down
 
 
-        rec_find(_l, _res, (Case){_current.col+1, _current.line}, _end);
+        rec_find(_l, _res, (Case){_current->col+1, _current->line}, _end);
     }
+
+    // attendre que les potentiels threads crees se finissent
+
+    for(int i = 0 ; i < 4 ; ++i)
+        if(threads_crees[i] != 0)
+            pthread_join(threads_crees[i], NULL);
+
 }
 
 
