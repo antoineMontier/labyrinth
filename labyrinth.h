@@ -32,6 +32,14 @@ typedef struct{
 
 typedef Case* chemin;
 
+typedef struct {
+    Laby*l;
+    chemin res;
+    Case* current;
+    Case* end;
+    Thread_manager*tm;
+} Thread_args;
+
 void end_actual_thread_signal(Thread_manager *t);
 Thread_manager creer_threads();
 void free_threads(Thread_manager *t);
@@ -42,7 +50,7 @@ void print_labyrinth(Laby);
 chemin solve_labyrinth(Laby);
 chemin solve_labyrinth_threads(Laby l);
 void rec_find(Laby, chemin res, Case start, Case end);
-void rec_find_thread(void* l, void* res, void* current, void* end, void* manager);
+void rec_find_thread(void* th_args);
 void print_Case(Case);
 int Case_in_chemin(int col, int line, chemin c);
 void ajouter_coordonees_au_chemin_au_dernier_voisin(int col, int line, chemin c);
