@@ -55,8 +55,8 @@ chemin solve_labyrinth_threads(Laby l){
     // preparer de l'espace pour les threads
     Thread_manager tm = creer_threads();
     // lancer la recursivite
-    Thread_args* args = {&l, reponse, &start, &end, &tm};
-    rec_find_thread((void*)args);
+    Thread_args args = {&l, reponse, &start, &end, &tm};
+    rec_find_thread((void*)&args);
     // rendre l'espace utilisé
     free_threads(&tm);
     
@@ -112,55 +112,59 @@ void rec_find_thread(void* th_args){
     // verifier les 4 directions et lancer une récursivité avec un thread si possible (s'il en reste) ou sinon lancer une recursitivté simple
     if(_current->line-1 >= 0 && !Case_in_chemin(_current->col, _current->line-1, _res) && _l->m[_current->col][_current->line-1] != MUR && _l->m[_current->col][_current->line-1] !=  VISITE){ // left
         // vérifier qu'il reste un thread dispo
-        Thread_args* ta = {_l, _res, (Case*){_current->col, _current->line-1},_end, (void*)_manager};
+        Case c = {_current->col, _current->line-1};
+        Thread_args  ta = {_l, _res, &c,_end, _manager};
         for(int i = 0 ; i < NB_THREAD; i++)
             if(_manager->used[i] == 0){ // disponible
                 _manager->used[i] = 1; // marquer comme utilisé
-                pthread_create(_manager->ids + i, NULL, (void*)rec_find_thread, (void*)ta);
+                pthread_create(_manager->ids + i, NULL, (void*)rec_find_thread, (void*)&ta);
                 threads_crees[0] = _manager->ids[i];
             }
         // si non cree, lancer la reucrisvité sans thread:
         if(threads_crees[0] == 0)
-            rec_find_thread((void*)ta); 
+            rec_find_thread((void*)&ta); 
     }
     if(_current->col - 1 >= 0 && !Case_in_chemin(_current->col-1, _current->line, _res) && _l->m[_current->col-1][_current->line] != MUR && _l->m[_current->col-1][_current->line] !=  VISITE){ // up
         // vérifier qu'il reste un thread dispo
-        Thread_args*ta = {_l, _res, (Case*){_current->col-1, _current->line},_end, (void*)_manager};
+        Case c = {_current->col-1, _current->line};
+        Thread_args ta = {_l, _res, &c,_end, _manager};
         for(int i = 0 ; i < NB_THREAD; i++)
             if(_manager->used[i] == 0){ // disponible
                 _manager->used[i] = 1; // marquer comme utilisé
-                pthread_create(_manager->ids + i, NULL, (void*)rec_find_thread, (void*)ta);
+                pthread_create(_manager->ids + i, NULL, (void*)rec_find_thread, (void*)&ta);
                 threads_crees[1] = _manager->ids[i];
             }
         // si non cree, lancer la reucrisvité sans thread:
         if(threads_crees[1] == 0)
-            rec_find_thread((void*)ta); 
+            rec_find_thread((void*)&ta); 
     }
     if(_current->line+1 < _l->cols && !Case_in_chemin(_current->col, _current->line+1, _res) && _l->m[_current->col][_current->line+1] != MUR && _l->m[_current->col][_current->line+1] !=  VISITE){ // right
         // vérifier qu'il reste un thread dispo
-        Thread_args*ta = {_l, _res, (Case*){_current->col, _current->line+1},_end, (void*)_manager};
+        Case c = {_current->col, _current->line+1};
+        Thread_args ta = {_l, _res, &c,_end, _manager};
         for(int i = 0 ; i < NB_THREAD; i++)
             if(_manager->used[i] == 0){ // disponible
                 _manager->used[i] = 1; // marquer comme utilisé
-                pthread_create(_manager->ids + i, NULL, (void*)rec_find_thread, (void*)ta);
+                pthread_create(_manager->ids + i, NULL, (void*)rec_find_thread, (void*)&ta);
                 threads_crees[2] = _manager->ids[i];
             }
         // si non cree, lancer la reucrisvité sans thread:
         if(threads_crees[2] == 0)
-            rec_find_thread((void*)ta); 
+            rec_find_thread((void*)&ta); 
     }
     if(_current->col+1 < _l->lignes && !Case_in_chemin(_current->col+1, _current->line, _res) && _l->m[_current->col+1][_current->line] != MUR && _l->m[_current->col+1][_current->line] !=  VISITE){ // down
         // vérifier qu'il reste un thread dispo
-        Thread_args*ta = {_l, _res, (Case*){_current->col+1, _current->line},_end, (void*)_manager};
+        Case c = {_current->col+1, _current->line};
+        Thread_args ta = {_l, _res, &c,_end, _manager};
         for(int i = 0 ; i < NB_THREAD; i++)
             if(_manager->used[i] == 0){ // disponible
                 _manager->used[i] = 1; // marquer comme utilisé
-                pthread_create(_manager->ids + i, NULL, (void*)rec_find_thread, (void*)ta);
+                pthread_create(_manager->ids + i, NULL, (void*)rec_find_thread, (void*)&ta);
                 threads_crees[3] = _manager->ids[i];
             }
         // si non cree, lancer la reucrisvité sans thread:
         if(threads_crees[3] == 0)
-            rec_find_thread((void*)ta); 
+            rec_find_thread((void*)&ta); 
     }
 
     // attendre que les potentiels threads crees se finissent
