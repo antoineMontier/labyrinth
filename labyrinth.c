@@ -110,32 +110,37 @@ void rec_find_thread(void* th_args){
     ajouter_coordonees_au_chemin_au_dernier_voisin(_current->col, _current->line, _res);
     pthread_t threads_crees[4];
 
+    int thread_necessaire = 0; // un lancement de thread est nécessaire seulement s'il y a plus d'un chemin possible (=noeud)
+
     for(int i = 0; i < 4 ; i++) threads_crees[i] = 0;
     // verifier les 4 directions et lancer une récursivité avec un thread si possible (s'il en reste) ou sinon lancer une recursitivté simple
     if(_current->line-1 >= 0 && !Case_in_chemin(_current->col, _current->line-1, _res) && _l->m[_current->col][_current->line-1] != MUR && _l->m[_current->col][_current->line-1] !=  VISITE){ // left
-        // vérifier qu'il reste un thread dispo
+        // vérifier qu'il reste un thread dispo et lancer si nécessaire
         Case c = {_current->col, _current->line-1};
         Thread_args  ta = {_l, _res, &c,_end, _manager};
-        for(int i = 0 ; i < NB_THREAD; i++)
+        for(int i = 0 ; thread_necessaire && i < NB_THREAD; i++)
             if(_manager->used[i] == 0){ // disponible
                 _manager->used[i] = 1; // marquer comme utilisé
                 pthread_create(_manager->ids + i, NULL, (void*)rec_find_thread, (void*)&ta);
                 threads_crees[0] = _manager->ids[i];
             }
         // si non cree, lancer la reucrisvité sans thread:
+        thread_necessaire = 1; // le prochain chemin comprends qu'il faut un thread
         if(threads_crees[0] == 0)
-            rec_find_thread((void*)&ta); 
+            rec_find_thread((void*)&ta);
+        
     }
     if(_current->col - 1 >= 0 && !Case_in_chemin(_current->col-1, _current->line, _res) && _l->m[_current->col-1][_current->line] != MUR && _l->m[_current->col-1][_current->line] !=  VISITE){ // up
         // vérifier qu'il reste un thread dispo
         Case c = {_current->col-1, _current->line};
         Thread_args ta = {_l, _res, &c,_end, _manager};
-        for(int i = 0 ; i < NB_THREAD; i++)
+        for(int i = 0 ; thread_necessaire && i < NB_THREAD; i++)
             if(_manager->used[i] == 0){ // disponible
                 _manager->used[i] = 1; // marquer comme utilisé
                 pthread_create(_manager->ids + i, NULL, (void*)rec_find_thread, (void*)&ta);
                 threads_crees[1] = _manager->ids[i];
             }
+        thread_necessaire = 1; // le prochain chemin comprends qu'il faut un thread
         // si non cree, lancer la reucrisvité sans thread:
         if(threads_crees[1] == 0)
             rec_find_thread((void*)&ta); 
@@ -144,12 +149,13 @@ void rec_find_thread(void* th_args){
         // vérifier qu'il reste un thread dispo
         Case c = {_current->col, _current->line+1};
         Thread_args ta = {_l, _res, &c,_end, _manager};
-        for(int i = 0 ; i < NB_THREAD; i++)
+        for(int i = 0 ; thread_necessaire && i < NB_THREAD; i++)
             if(_manager->used[i] == 0){ // disponible
                 _manager->used[i] = 1; // marquer comme utilisé
                 pthread_create(_manager->ids + i, NULL, (void*)rec_find_thread, (void*)&ta);
                 threads_crees[2] = _manager->ids[i];
             }
+        thread_necessaire = 1; // le prochain chemin comprends qu'il faut un thread
         // si non cree, lancer la reucrisvité sans thread:
         if(threads_crees[2] == 0)
             rec_find_thread((void*)&ta); 
@@ -158,12 +164,13 @@ void rec_find_thread(void* th_args){
         // vérifier qu'il reste un thread dispo
         Case c = {_current->col+1, _current->line};
         Thread_args ta = {_l, _res, &c,_end, _manager};
-        for(int i = 0 ; i < NB_THREAD; i++)
+        for(int i = 0 ; thread_necessaire && i < NB_THREAD; i++)
             if(_manager->used[i] == 0){ // disponible
                 _manager->used[i] = 1; // marquer comme utilisé
                 pthread_create(_manager->ids + i, NULL, (void*)rec_find_thread, (void*)&ta);
                 threads_crees[3] = _manager->ids[i];
             }
+        thread_necessaire = 1; // le prochain chemin comprends qu'il faut un thread
         // si non cree, lancer la reucrisvité sans thread:
         if(threads_crees[3] == 0)
             rec_find_thread((void*)&ta); 
