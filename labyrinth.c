@@ -87,6 +87,8 @@ void rec_find_thread(void* th_args){
     Case* _current = t->current;
     Case* _end = t->end;
     Thread_manager* _manager = t->tm;
+    print_Case(*_current);
+    print_chemin(_res);
 
     if(_res[CHEMIN_LENGTH-1].col == END_SIGNAL && _res[CHEMIN_LENGTH-1].line == END_SIGNAL) // check end_signal
         end_actual_thread_signal(_manager); // une solution a deja ete trouvee
@@ -136,7 +138,8 @@ void rec_find_thread(void* th_args){
         Thread_args ta = {_l, _res, &c,_end, _manager};
         for(int i = 0 ; thread_necessaire && i < NB_THREAD; i++)
             if(_manager->used[i] == 0){ // disponible
-                _manager->used[i] = 1; // marquer comme utilisé
+                _manager->used[i] = 1;             
+// marquer comme utilisé
                 pthread_create(_manager->ids + i, NULL, (void*)rec_find_thread, (void*)&ta);
                 threads_crees[1] = _manager->ids[i];
             }
