@@ -87,6 +87,7 @@ void rec_find_thread(void* th_args){
     Case* _current = t->current;
     Case* _end = t->end;
     Thread_manager* _manager = t->tm;
+    printf("\n\n%ld\n", pthread_self());
     print_Case(*_current);
     print_chemin(_res);
 
