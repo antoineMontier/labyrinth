@@ -115,7 +115,7 @@ int nb_sons(Thread_manager *t){
     return count;
 }
 
-chemin end_actual_thread_and_sons_return_best_chemin(Thread_manager *t){
+void end_actual_thread_and_sons_return_best_chemin(Thread_manager *t){
     chemin rep = malloc(NB_THREAD*sizeof(Case)); // ATTENTION ne pas oublier le 'FREE' apres
     Case temp[NB_THREAD];
     temp[0] = (Case){UNUSED, UNUSED};
@@ -131,20 +131,111 @@ chemin end_actual_thread_and_sons_return_best_chemin(Thread_manager *t){
             for(int i = 0 ; i  < NB_THREAD ; i++)
                 rep[i] = temp[i]; 
     }
-    return rep;
+    pthread_exit((void*)rep);
 }
 
+
+void end_actual_thread_and_sons_return_self_chemin(Thread_args *ta){
+    int ret;
+    for(int i = 0 ; i < nb_sons(ta->tm) ; ++i){ // pour chaque fils
+        ret = pthread_join(ta->tm->sons[i], NULL);
+        if(ret > 0){
+            printf("erreur fermeture du thread %ld\tcode%d\n", ta->tm->sons[i], ret);
+            exit(1);
+        }
+    }
+    pthread_exit((void*)ta->res);
+}
+
+
+
+// gerer le cas du pere qui doit retourner le chemin finale
 chemin rec_find_thread(void* th_args){
     Thread_args* t = (Thread_args*)th_args;
-
+    
     // si une réponse est trouvée, finir le thread actuel, seulement s'il n'est père d'aucun thread, sinon attendre ses fils
-    if(*(t->solution_trouvee)){
-        chemin rep = end_actual_thread_and_sons_return_best_chemin(t->tm);
+    if(*(t->solution_trouvee) && pthread_self() != t->father)
+        end_actual_thread_and_sons_return_best_chemin(t->tm);
+
+    //verifier si la case end est atteinte
+    if(cases_egales(*t->current, *t->end)){
+         // ajouter à la main la derniere case dans le chemin :
+        for(int i=0; i<CHEMIN_LENGTH; i++)
+            if(t->res[i].col == UNUSED && t->res[i].line == UNUSED){
+                t->res[i] = *t->end;
+                break;
+            }
+        t->res[CHEMIN_LENGTH-1] = (Case){END_SIGNAL, END_SIGNAL};
+        *t->solution_trouvee = 1;
+        if(pthread_self() == t->father)
+            return t->res; // retourner le resultat normalement si processus pere, celui qui a ete appele par la fonction initialisant la recusivite
+        else    
+            end_actual_thread_and_sons_return_self_chemin(t); // arreter les processus fils et renvoyer au pere la solution
     }
 
 
 
+    // marquer la case comme visitée : 
+    t->l->m[t->current->col][t->current->line] = VISITE;
+
+    //ajouter la case dans le chemin
+    ajouter_coordonees_au_chemin_au_dernier_voisin(t->current->col, t->current->line, t->res);
+
+    // verifier les 4 directions // si un choix, lancer une recursivite simple, si plusieurs choix, lancer une recursivite et completer avec des threads
+    // chaque thread doit etre lance avec une copie du chemin pour eviter quils ecrivent tous dans le meme vecteur
+    int up = 0, left = 0, right = 0, down = 0;
+    if(t->current->line-1 >= 0 && !Case_in_chemin(t->current->col, t->current->line-1, t->res) && t->l->m[t->current->col][t->current->line-1] != MUR && t->l->m[t->current->col][t->current->line-1] !=  VISITE) up = 1;
+    if(t->current->col - 1 >= 0 && !Case_in_chemin(t->current->col-1, t->current->line, t->res) && t->l->m[t->current->col-1][t->current->line] != MUR && t->l->m[t->current->col-1][t->current->line] !=  VISITE) left = 1;  
+    if(t->current->line+1 < t->l->cols && !Case_in_chemin(t->current->col, t->current->line+1, t->res) && t->l->m[t->current->col][t->current->line+1] != MUR && t->l->m[t->current->col][t->current->line+1] !=  VISITE) down = 1;
+    if(t->current->col+1 < t->l->lignes && !Case_in_chemin(t->current->col+1, t->current->line, t->res) && t->l->m[t->current->col+1][t->current->line] != MUR && t->l->m[t->current->col+1][t->current->line] !=  VISITE) right = 1;
+
+    int nb_ways = 0;
+    if(up){
+        // simple recusivite
+        Thread_args nt;
+        Case ncc = {t->current->col, t->current->line-1};
+        nt.current = &ncc;
+        nt.end = t->end;
+        nt.father = t->father;
+        nt.l = t->l;
+        nt.solution_trouvee = t->solution_trouvee;
+        
+        nt.tm = t->tm;
+        rec_find_thread((void*)&nt);
+
+        ++nb_ways;
+    }
+
+
+    if(left){
+        if(nb_ways == 0){ // simple recursivite
+            Thread_args nt;
+            Case ncc = {t->current->col, t->current->line-1};
+            nt.current = &ncc;
+            nt.end = t->end;
+            nt.father = t->father;
+            nt.l = t->l;
+            nt.solution_trouvee = t->solution_trouvee;
+
+            nt.tm = t->tm;
+            rec_find_thread((void*)&nt);
+        }else{ // creer un thread
+
+            //
+
+        }
+        ++nb_ways;  
+    }
+
+
+
+
 }
+
+
+
+
+
 
 void nettoyer_chemin(chemin c){
     // se placer à l'indice fin : 
@@ -259,9 +350,9 @@ void rec_find(Laby l, chemin res, Case current, Case end){
         rec_find(l, res, (Case){current.col, current.line-1}, end);
     if(current.col - 1 >= 0 && !Case_in_chemin(current.col-1, current.line, res) && l.m[current.col-1][current.line] != MUR && l.m[current.col-1][current.line] !=  VISITE) // up
         rec_find(l, res, (Case){current.col-1, current.line}, end);   
-    if(current.line+1 < l.cols && !Case_in_chemin(current.col, current.line+1, res) && l.m[current.col][current.line+1] != MUR && l.m[current.col][current.line+1] !=  VISITE) // right
+    if(current.line+1 < l.cols && !Case_in_chemin(current.col, current.line+1, res) && l.m[current.col][current.line+1] != MUR && l.m[current.col][current.line+1] !=  VISITE) // down
         rec_find(l, res, (Case){current.col, current.line+1}, end);
-    if(current.col+1 < l.lignes && !Case_in_chemin(current.col+1, current.line, res) && l.m[current.col+1][current.line] != MUR && l.m[current.col+1][current.line] !=  VISITE) // down
+    if(current.col+1 < l.lignes && !Case_in_chemin(current.col+1, current.line, res) && l.m[current.col+1][current.line] != MUR && l.m[current.col+1][current.line] !=  VISITE) // right
         rec_find(l, res, (Case){current.col+1, current.line}, end);
 }
 
