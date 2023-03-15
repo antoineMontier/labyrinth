@@ -134,6 +134,25 @@ void end_actual_thread_and_sons_return_best_chemin(Thread_manager *t){
     pthread_exit((void*)rep);
 }
 
+chemin end_sons_and_return_best_chemin(Thread_manager *t){
+    chemin rep = malloc(NB_THREAD*sizeof(Case)); // ATTENTION ne pas oublier le 'FREE' apres
+    Case temp[NB_THREAD];
+    temp[0] = (Case){UNUSED, UNUSED};
+    rep[0] = (Case){UNUSED, UNUSED};
+    int ret;
+    for(int i = 0 ; i < nb_sons(t) ; ++i){ // pour chaque fils
+        ret = pthread_join(t->sons[i], (void**)&temp);
+        if(ret > 0){
+            printf("erreur fermeture du thread %ld\tcode%d\n", t->sons[i], ret);
+            exit(1);
+        }
+        if(rep[0].col == UNUSED && rep[0].line == UNUSED && temp[0].col != UNUSED && temp[0].line != UNUSED) // copy temp in rep if rep isn't an answer and temp is an answer
+            for(int i = 0 ; i  < NB_THREAD ; i++)
+                rep[i] = temp[i]; 
+    }
+    return rep;
+}
+
 
 void end_actual_thread_and_sons_return_self_chemin(Thread_args *ta){
     int ret;
@@ -214,8 +233,6 @@ chemin rec_find_thread(void* th_args){
 
         ++nb_ways;
     }
-
-
     if(left){
         Thread_args nt;
             Case ncc = {t->current->col-1, t->current->line};
@@ -328,9 +345,9 @@ chemin rec_find_thread(void* th_args){
 
     // 1 : aucun chemin possible (cul de sac)
     if(nb_ways == 0){
-
-
-
+        // attendre que les fils se terminent
+        if(pthread_self() != t->father) end_actual_thread_and_sons_return_best_chemin(t->tm); // pas le thread original
+        else return end_sons_and_return_best_chemin(t->tm);   // thread original
     }
     // 2 : un chemin possible => recursivite simple lancee
     else if(nb_ways == 1){
