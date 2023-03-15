@@ -11,6 +11,11 @@
 #define END_SIGNAL (-123)
 #define NB_THREAD 8
 
+#define HAUT (-1111)
+#define GAUCHE (-2222)
+#define DROITE (-3333)
+#define BAS (-4444)
+
 #define CHEMIN_LENGTH (500)
 
 
@@ -28,6 +33,7 @@ typedef struct{
 typedef struct{
     pthread_t* ids;
     int* used;
+    pthread_t** sons;
 } Thread_manager;
 
 typedef Case* chemin;
@@ -39,8 +45,10 @@ typedef struct {
     Case* end;
     Thread_manager*tm;
     pthread_t father;
+    int*solution_trouvee;
 } Thread_args;
 
+int actual_ind(Thread_manager *t)
 void end_actual_thread_signal_without_cancel(Thread_manager *t);
 void end_actual_thread_signal(Thread_manager *t);
 Thread_manager creer_threads();

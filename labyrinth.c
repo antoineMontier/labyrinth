@@ -4,6 +4,15 @@ Thread_manager creer_threads(){
     Thread_manager res;
     res.used = malloc(NB_THREAD*sizeof(int));
     res.ids = malloc(NB_THREAD*sizeof(pthread_t));
+    res.sons = malloc(NB_THREAD*sizeof(pthread_t*));
+    for(int i = 0 ; i < NB_THREAD ; i++)
+        res.sons[i] = malloc(NB_THREAD*sizeof(pthread_t));
+    // initialisation
+    for(int i = 0 ; i < NB_THREAD ; i++){
+        res.used[i] = res.ids[i] = 0;
+        for(int j = 0 ; j  < NB_THREAD ;++j)
+            res.sons[i][j] = 0;
+    }
     return res;
 }
 
@@ -14,6 +23,10 @@ void free_threads(Thread_manager *t){
         free(t->used);
     if(t->ids != NULL)
         free(t->ids);
+    if(t->sons != NULL)
+        for(int i = 0 ; i < NB_THREAD ; ++i)
+            if(t->sons[i] != NULL)
+                free(t->sons[i]);
     t = NULL;
 }
 
@@ -54,8 +67,9 @@ chemin solve_labyrinth_threads(Laby l){
 
     // preparer de l'espace pour les threads
     Thread_manager tm = creer_threads();
+    int sol = 0;
     // lancer la recursivite
-    Thread_args args = {&l, reponse, &start, &end, &tm, pthread_self()};
+    Thread_args args = {&l, reponse, &start, &end, &tm, pthread_self(), &sol};
     printf("avant le lancement de la recursivite\n");
     rec_find_thread((void*)&args);
     printf("apres le lancement de la recursivite\n");
@@ -87,150 +101,47 @@ void end_actual_thread_signal(Thread_manager *t){
     pthread_cancel(pthread_self());
 }
 
+int actual_ind(Thread_manager *t){
+    for(int i = 0 ; i < NB_THREAD ; i++)
+        if(pthread_self() == t->ids[i])
+            return i;
+    return -1;
+}
+
+int nb_sons(Thread_manager *t){
+    int count = 0;
+    for(int i = 0 ; i < NB_THREAD ; i++)
+        count += (t->sons[i] != 0);
+    return count;
+}
+
+chemin end_actual_thread_and_sons_return_best_chemin(Thread_manager *t){
+    chemin rep = malloc(NB_THREAD*sizeof(Case)); // ATTENTION ne pas oublier le 'FREE' apres
+    Case temp[NB_THREAD];
+    temp[0] = (Case){UNUSED, UNUSED};
+    rep[0] = (Case){UNUSED, UNUSED};
+    int ret;
+    for(int i = 0 ; i < nb_sons(t) ; ++i){ // pour chaque fils
+        ret = pthread_join(t->sons[i], (void**)&temp);
+        if(ret > 0){
+            printf("erreur fermeture du thread %ld\tcode%d\n", t->sons[i], ret);
+            exit(1);
+        }
+        if(rep[0].col == UNUSED && rep[0].line == UNUSED && temp[0].col != UNUSED && temp[0].line != UNUSED) // copy temp in rep if rep isn't an answer and temp is an answer
+            for(int i = 0 ; i  < NB_THREAD ; i++)
+                rep[i] = temp[i]; 
+    }
+    return rep;
+}
+
 chemin rec_find_thread(void* th_args){
     Thread_args* t = (Thread_args*)th_args;
-    chemin _res = t->res;
-    Laby* _l = t->l;
-    Case* _current = t->current;
-    Case* _end = t->end;
-    Thread_manager* _manager = t->tm;
-    printf("\n\n%ld\n", pthread_self());
-    print_Case(*_current);
-    print_chemin(_res);
 
-    if(_res[CHEMIN_LENGTH-1].col == END_SIGNAL && _res[CHEMIN_LENGTH-1].line == END_SIGNAL) // check end_signal
-        end_actual_thread_signal(_manager); // une solution a deja ete trouvee
-    
-    if(cases_egales(*_current, *_end)){
-
-        // ajouter à la main la derniere case dans le chemin :
-        for(int i=0; i<CHEMIN_LENGTH; i++)
-            if(_res[i].col == UNUSED && _res[i].line == UNUSED){
-                _res[i] = (*_end);
-                break;
-            }
-        _res[CHEMIN_LENGTH-1] = (Case){END_SIGNAL, END_SIGNAL};
-        end_actual_thread_signal_without_cancel(_manager); // une solution est trouvee
-        pthread_exit((void *)_res);
+    // si une réponse est trouvée, finir le thread actuel, seulement s'il n'est père d'aucun thread, sinon attendre ses fils
+    if(*(t->solution_trouvee)){
+        chemin rep = end_actual_thread_and_sons_return_best_chemin(t->tm);
     }
 
-    // marquer la case comme visitée : 
-    _l->m[_current->col][_current->line] = VISITE;
-
-    //ajouter la case dans le chemin
-    ajouter_coordonees_au_chemin_au_dernier_voisin(_current->col, _current->line, _res);
-    pthread_t threads_crees[4];
-
-    int thread_necessaire = 0; // un lancement de thread est nécessaire seulement s'il y a plus d'un chemin possible (=noeud)
-
-    for(int i = 0; i < 4 ; i++) threads_crees[i] = 0;
-    // verifier les 4 directions et lancer une récursivité avec un thread si possible (s'il en reste) ou sinon lancer une recursitivté simple
-    
-    
-    if(_current->line-1 >= 0 && !Case_in_chemin(_current->col, _current->line-1, _res) && _l->m[_current->col][_current->line-1] != MUR && _l->m[_current->col][_current->line-1] !=  VISITE){ // left
-        // vérifier qu'il reste un thread dispo et lancer si nécessaire
-        
-        Case c = {_current->col, _current->line-1};
-        Case _copy_res[CHEMIN_LENGTH];
-        for(int i = 0 ; i < CHEMIN_LENGTH ; i++)
-            _copy_res[i] = _res[i];
-
-        Thread_args  ta = {_l, _copy_res, &c,_end, _manager, t->father};
-        
-        for(int i = 0 ; thread_necessaire && i < NB_THREAD; i++)
-            if(_manager->used[i] == 0){ // disponible
-                _manager->used[i] = 1; // marquer comme utilisé
-                pthread_create(_manager->ids + i, NULL, (void*)rec_find_thread, (void*)&ta);
-                threads_crees[0] = _manager->ids[i];
-            }
-        
-        // si non cree, lancer la reucrisvité sans thread:
-        
-        thread_necessaire = 1; // le prochain chemin comprends qu'il faut un thread
-        ta.res = _res; // si on continue la recursivité, pas besoin de copier et creer un nv chemin
-        if(threads_crees[0] == 0)
-            rec_find_thread((void*)&ta);
-    }
-    
-    
-    
-    if(_current->col - 1 >= 0 && !Case_in_chemin(_current->col-1, _current->line, _res) && _l->m[_current->col-1][_current->line] != MUR && _l->m[_current->col-1][_current->line] !=  VISITE){ // up
-        // vérifier qu'il reste un thread dispo
-        Case c = {_current->col-1, _current->line};
-        Case _copy_res[CHEMIN_LENGTH];
-        for(int i = 0 ; i < CHEMIN_LENGTH ; i++)
-            _copy_res[i] = _res[i];
-
-        Thread_args  ta = {_l, _copy_res, &c,_end, _manager, t->father};
-        for(int i = 0 ; thread_necessaire && i < NB_THREAD; i++)
-            if(_manager->used[i] == 0){ // disponible
-                _manager->used[i] = 1;             
-                // marquer comme utilisé
-                pthread_create(_manager->ids + i, NULL, (void*)rec_find_thread, (void*)&ta);
-                threads_crees[1] = _manager->ids[i];
-            }
-        thread_necessaire = 1; // le prochain chemin comprends qu'il faut un thread
-        ta.res = _res; // si on continue la recursivité, pas besoin de copier et creer un nv chemin
-        // si non cree, lancer la reucrisvité sans thread:
-        if(threads_crees[1] == 0)
-            rec_find_thread((void*)&ta); 
-    }
-    if(_current->line+1 < _l->cols && !Case_in_chemin(_current->col, _current->line+1, _res) && _l->m[_current->col][_current->line+1] != MUR && _l->m[_current->col][_current->line+1] !=  VISITE){ // right
-        // vérifier qu'il reste un thread dispo
-        Case c = {_current->col, _current->line+1};
-        Case _copy_res[CHEMIN_LENGTH];
-        for(int i = 0 ; i < CHEMIN_LENGTH ; i++)
-            _copy_res[i] = _res[i];
-
-        Thread_args  ta = {_l, _copy_res, &c,_end, _manager, t->father};
-        for(int i = 0 ; thread_necessaire && i < NB_THREAD; i++)
-            if(_manager->used[i] == 0){ // disponible
-                _manager->used[i] = 1; // marquer comme utilisé
-                pthread_create(_manager->ids + i, NULL, (void*)rec_find_thread, (void*)&ta);
-                threads_crees[2] = _manager->ids[i];
-            }
-        thread_necessaire = 1; // le prochain chemin comprends qu'il faut un thread
-        ta.res = _res; // si on continue la recursivité, pas besoin de copier et creer un nv chemin
-        // si non cree, lancer la reucrisvité sans thread:
-        if(threads_crees[2] == 0)
-            rec_find_thread((void*)&ta); 
-    }
-    if(_current->col+1 < _l->lignes && !Case_in_chemin(_current->col+1, _current->line, _res) && _l->m[_current->col+1][_current->line] != MUR && _l->m[_current->col+1][_current->line] !=  VISITE){ // down
-        // vérifier qu'il reste un thread dispo
-        Case c = {_current->col+1, _current->line};
-        Case _copy_res[CHEMIN_LENGTH];
-        for(int i = 0 ; i < CHEMIN_LENGTH ; i++)
-            _copy_res[i] = _res[i];
-
-        Thread_args  ta = {_l, _copy_res, &c,_end, _manager, t->father};
-        for(int i = 0 ; thread_necessaire && i < NB_THREAD; i++)
-            if(_manager->used[i] == 0){ // disponible
-                _manager->used[i] = 1; // marquer comme utilisé
-                pthread_create(_manager->ids + i, NULL, (void*)rec_find_thread, (void*)&ta);
-                threads_crees[3] = _manager->ids[i];
-            }
-        thread_necessaire = 1; // le prochain chemin comprends qu'il faut un thread
-        ta.res = _res; // si on continue la recursivité, pas besoin de copier et creer un nv chemin
-        // si non cree, lancer la reucrisvité sans thread:
-        if(threads_crees[3] == 0)
-            rec_find_thread((void*)&ta); 
-    }
-
-    // attendre que les potentiels threads crees se finissent
-
-    Case p[CHEMIN_LENGTH]; int b;
-
-    for(int i = 0 ; i < 4 ; ++i)
-        if(threads_crees[i] != 0)
-            if(b = pthread_join(threads_crees[i], (void**)&p)){
-                printf("erreur fermeture du thread n°%d - code: %d\n", i, b);
-                exit(1);
-            }
-
-    if(pthread_self() != t->father){ // finir le thread actuel si ce n'es pas l'original thread
-        end_actual_thread_signal_without_cancel(_manager); // une solution est trouvee
-        pthread_exit((void *)p); // renvoyer la réponse
-    }
 
 
 }
