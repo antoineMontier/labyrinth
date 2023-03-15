@@ -55,7 +55,7 @@ chemin solve_labyrinth_threads(Laby l){
     // preparer de l'espace pour les threads
     Thread_manager tm = creer_threads();
     // lancer la recursivite
-    Thread_args args = {&l, reponse, &start, &end, &tm};
+    Thread_args args = {&l, reponse, &start, &end, &tm, pthread_self()};
     printf("avant le lancement de la recursivite\n");
     rec_find_thread((void*)&args);
     printf("apres le lancement de la recursivite\n");
@@ -70,6 +70,13 @@ chemin solve_labyrinth_threads(Laby l){
 
     return reponse;
 }
+void end_actual_thread_signal_without_cancel(Thread_manager *t){
+    for(int i = 0 ; i  < NB_THREAD ; i++)
+        if(pthread_self() == t->ids[i]){
+            t->used[i] = 0;
+            return;
+        }
+}
 
 void end_actual_thread_signal(Thread_manager *t){
     for(int i = 0 ; i  < NB_THREAD ; i++)
@@ -80,7 +87,7 @@ void end_actual_thread_signal(Thread_manager *t){
     pthread_cancel(pthread_self());
 }
 
-void rec_find_thread(void* th_args){
+chemin rec_find_thread(void* th_args){
     Thread_args* t = (Thread_args*)th_args;
     chemin _res = t->res;
     Laby* _l = t->l;
@@ -103,7 +110,8 @@ void rec_find_thread(void* th_args){
                 break;
             }
         _res[CHEMIN_LENGTH-1] = (Case){END_SIGNAL, END_SIGNAL};
-        end_actual_thread_signal(_manager); // une solution a deja ete trouvee
+        end_actual_thread_signal_without_cancel(_manager); // une solution est trouvee
+        pthread_exit((void *)_res);
     }
 
     // marquer la case comme visitée : 
@@ -127,7 +135,7 @@ void rec_find_thread(void* th_args){
         for(int i = 0 ; i < CHEMIN_LENGTH ; i++)
             _copy_res[i] = _res[i];
 
-        Thread_args  ta = {_l, _copy_res, &c,_end, _manager};
+        Thread_args  ta = {_l, _copy_res, &c,_end, _manager, t->father};
         
         for(int i = 0 ; thread_necessaire && i < NB_THREAD; i++)
             if(_manager->used[i] == 0){ // disponible
@@ -153,7 +161,7 @@ void rec_find_thread(void* th_args){
         for(int i = 0 ; i < CHEMIN_LENGTH ; i++)
             _copy_res[i] = _res[i];
 
-        Thread_args  ta = {_l, _copy_res, &c,_end, _manager};
+        Thread_args  ta = {_l, _copy_res, &c,_end, _manager, t->father};
         for(int i = 0 ; thread_necessaire && i < NB_THREAD; i++)
             if(_manager->used[i] == 0){ // disponible
                 _manager->used[i] = 1;             
@@ -174,7 +182,7 @@ void rec_find_thread(void* th_args){
         for(int i = 0 ; i < CHEMIN_LENGTH ; i++)
             _copy_res[i] = _res[i];
 
-        Thread_args  ta = {_l, _copy_res, &c,_end, _manager};
+        Thread_args  ta = {_l, _copy_res, &c,_end, _manager, t->father};
         for(int i = 0 ; thread_necessaire && i < NB_THREAD; i++)
             if(_manager->used[i] == 0){ // disponible
                 _manager->used[i] = 1; // marquer comme utilisé
@@ -194,7 +202,7 @@ void rec_find_thread(void* th_args){
         for(int i = 0 ; i < CHEMIN_LENGTH ; i++)
             _copy_res[i] = _res[i];
 
-        Thread_args  ta = {_l, _copy_res, &c,_end, _manager};
+        Thread_args  ta = {_l, _copy_res, &c,_end, _manager, t->father};
         for(int i = 0 ; thread_necessaire && i < NB_THREAD; i++)
             if(_manager->used[i] == 0){ // disponible
                 _manager->used[i] = 1; // marquer comme utilisé
@@ -210,9 +218,19 @@ void rec_find_thread(void* th_args){
 
     // attendre que les potentiels threads crees se finissent
 
+    Case p[CHEMIN_LENGTH]; int b;
+
     for(int i = 0 ; i < 4 ; ++i)
         if(threads_crees[i] != 0)
-            pthread_join(threads_crees[i], NULL);
+            if(b = pthread_join(threads_crees[i], (void**)&p)){
+                printf("erreur fermeture du thread n°%d - code: %d\n", i, b);
+                exit(1);
+            }
+
+    if(pthread_self() != t->father){ // finir le thread actuel si ce n'es pas l'original thread
+        end_actual_thread_signal_without_cancel(_manager); // une solution est trouvee
+        pthread_exit((void *)p); // renvoyer la réponse
+    }
 
 
 }
