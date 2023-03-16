@@ -37,6 +37,10 @@ chemin solve_labyrinth_threads(Laby l){
     args.res = malloc(NB_THREAD*sizeof(chemin));
     for(int i = 0 ; i < NB_THREAD ; ++i)
         args.res[i] = malloc(CHEMIN_LENGTH*sizeof(Case));
+    for(int i = 0 ; i < NB_THREAD ; ++i)
+        for(int j = 0 ; j < CHEMIN_LENGTH ; ++j)
+            args.res[i][j] = (Case){UNUSED, UNUSED};
+
     args.assoc = malloc(NB_THREAD*sizeof(Thread_chemin));
     for(int i = 0 ; i < NB_THREAD ; ++i){
         args.assoc[i].id = 0; // pas de threads encore
@@ -55,7 +59,7 @@ chemin solve_labyrinth_threads(Laby l){
     for(int i = 0 ; i < NB_THREAD ; ++i)
         if(args.assoc[i].id != 0)
             pthread_join(args.assoc[i].id, NULL);
-    
+    printf("apres le join\n");
 
 
     // lire le chemin reponse dans le tableau de chemin : 
@@ -118,6 +122,7 @@ void* rec_find_thread(void* th_args){
     fflush(stdout);
 
     if(*t->fini){ // chemin trouvé par un autre thread
+        printf("je m'arrete car la solution est trouvee, fini = 1\n");
         // supprimer le chemin fait par le thread en marquant les cases comme inutilisees
         for(int i = 0 ; i < CHEMIN_LENGTH ; ++i)
             t->res[thread_num][0] = (Case){UNUSED, UNUSED};
@@ -125,6 +130,8 @@ void* rec_find_thread(void* th_args){
     }
 
     if(cases_egales(*(t->current), *(t->end))){ // le thread actuel a trouvé la bonne réponse
+        printf("je m'arrete car je suis sur la case reponse\n");
+
         *t->fini = 1; // communiquer aux autres threads qu'il faut qu'ils s'arretent
         ajouter_au_dernier_voisin(t->res[thread_num], *(t->current)); // ajouter la derniere case (end)
         pthread_exit(NULL); // stopper le thread ici
@@ -176,7 +183,8 @@ void* rec_find_thread(void* th_args){
         printf("up nb_dir = %d\n", nb_direction); 
         Case new_current = (Case){t->current->col, t->current->line-1};
         Thread_args nt = (Thread_args){t->l, t->res, &new_current, t->end, t->tids, t->pere, t->assoc, t->fini};
-        if(nb_direction++ == 0 || max_threads_reached(*t)) // simple recusivité à lancer dans le thread actuel si une seule direction ou si le nb max de thread est atteint
+        nb_direction++;
+        if(nb_direction == 1 || max_threads_reached(*t)) // simple recusivité à lancer dans le thread actuel si une seule direction ou si le nb max de thread est atteint
             rec_find_thread((void*)&nt);
         else{ // lancer avec un thread
             printf("creating new thread.....\n");
@@ -186,7 +194,8 @@ void* rec_find_thread(void* th_args){
         printf("left nb_dir = %d\n", nb_direction);   
         Case new_current = (Case){t->current->col-1, t->current->line};
         Thread_args nt = (Thread_args){t->l, t->res, &new_current, t->end, t->tids, t->pere, t->assoc, t->fini};
-        if(nb_direction++ == 0 || max_threads_reached(*t)) // simple recusivité à lancer dans le thread actuel si une seule direction ou si le nb max de thread est atteint
+        nb_direction++;
+        if(nb_direction == 1 || max_threads_reached(*t)) // simple recusivité à lancer dans le thread actuel si une seule direction ou si le nb max de thread est atteint
             rec_find_thread((void*)&nt);
         else{ // lancer avec un thread
             printf("creating new thread.....\n");
@@ -196,7 +205,8 @@ void* rec_find_thread(void* th_args){
         printf("down nb_dir = %d\n", nb_direction);   
         Case new_current = (Case){t->current->col, t->current->line+1};
         Thread_args nt = (Thread_args){t->l, t->res, &new_current, t->end, t->tids, t->pere, t->assoc, t->fini};
-        if(nb_direction++ == 0 || max_threads_reached(*t)) // simple recusivité à lancer dans le thread actuel si une seule direction ou si le nb max de thread est atteint
+        nb_direction++;
+        if(nb_direction == 1 || max_threads_reached(*t)) // simple recusivité à lancer dans le thread actuel si une seule direction ou si le nb max de thread est atteint
             rec_find_thread((void*)&nt);
         else{ // lancer avec un thread
             printf("creating new thread.....\n");
@@ -206,7 +216,8 @@ void* rec_find_thread(void* th_args){
         printf("right nb_dir = %d\n", nb_direction);  
         Case new_current = (Case){t->current->col+1, t->current->line};
         Thread_args nt = (Thread_args){t->l, t->res, &new_current, t->end, t->tids, t->pere, t->assoc, t->fini};
-        if(nb_direction++ == 0 || max_threads_reached(*t)) // simple recusivité à lancer dans le thread actuel si une seule direction ou si le nb max de thread est atteint
+        nb_direction++;
+        if(nb_direction == 1 || max_threads_reached(*t)) // simple recusivité à lancer dans le thread actuel si une seule direction ou si le nb max de thread est atteint
             rec_find_thread((void*)&nt);
         else{ // lancer avec un thread
             printf("creating new thread.....\n");
