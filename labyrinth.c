@@ -1,4 +1,4 @@
-#include "labyrinth.h"
+#include "labyrinth.h"  
 
 Thread_manager creer_threads(){
     Thread_manager res;
@@ -351,19 +351,19 @@ chemin rec_find_thread(void* th_args){
     }
     // 2 : un chemin possible => recursivite simple lancee
     else if(nb_ways == 1){
-
-
-
+        // attendre que les fils se terminent
+        if(pthread_self() != t->father) end_actual_thread_and_sons_return_best_chemin(t->tm); // pas le thread original
+        else return end_sons_and_return_best_chemin(t->tm);   // thread original
     }
     // 3 : plusieurs chemins possibles => recusivite simple + threads
     else if(nb_ways > 1){
-
-
-
+        // attendre que les fils se terminent
+        if(pthread_self() != t->father) end_actual_thread_and_sons_return_best_chemin(t->tm); // pas le thread original
+        else return end_sons_and_return_best_chemin(t->tm);   // thread original
     }
 
 
-
+    return t->res;
 
 }
 

@@ -48,7 +48,7 @@ typedef struct {
     int*solution_trouvee;
 } Thread_args;
 
-int actual_ind(Thread_manager *t)
+int actual_ind(Thread_manager *t);
 void end_actual_thread_signal_without_cancel(Thread_manager *t);
 void end_actual_thread_signal(Thread_manager *t);
 Thread_manager creer_threads();
