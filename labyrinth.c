@@ -53,12 +53,33 @@ chemin solve_labyrinth_threads(Laby l){
     args.tids = malloc(NB_THREAD*sizeof(pthread_t));
     args.fini = malloc(sizeof(int));
     *args.fini = 0;
-
-
     printf("avant le lancement de la recursivite\n");
-    rec_find_thread((void*)&args); // a lancer dans un thread !!!
+    pthread_create(&(args.assoc[0].id), NULL, (void*)rec_find_thread,(void*)&args);
     printf("apres le lancement de la recursivite\n");
+
+    for(int i = 0 ; i < NB_THREAD ; ++i)
+        if(args.assoc[i].id != 0)
+            pthread_join(args.assoc[i].id, NULL);
+    
+
+
+    // lire le chemin reponse dans le tableau de chemin : 
+
+    chemin reponse_finale = malloc(CHEMIN_LENGTH * sizeof(Case));
+    for(int i = 0 ; i < NB_THREAD ; ++i)
+        if(args.res[i][0].col != UNUSED && args.res[i][0].line != UNUSED){ // only 1 
+            for(int j = 0 ; j < CHEMIN_LENGTH ; ++j)
+                reponse_finale[j] = args.res[i][j];
+            i = NB_THREAD;
+        }
+
+
+            
+
     // rendre l'espace utilisé
+    //TODO
+
+
     
     //remettre la case depart : 
     l.m[start.col][start.line] = ENTREE;
@@ -66,7 +87,7 @@ chemin solve_labyrinth_threads(Laby l){
     // nettoyer la reponse si necessaire : 
     // if(!check_solution(l, reponse)) nettoyer_chemin(reponse);
 
-    return reponse;
+    return reponse_finale;
 }
 
 int get_indice(Thread_args t){
