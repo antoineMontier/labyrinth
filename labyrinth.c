@@ -1,35 +1,5 @@
 #include "labyrinth.h"  
 
-Thread_manager creer_threads(){
-    Thread_manager res;
-    res.used = malloc(NB_THREAD*sizeof(int));
-    res.ids = malloc(NB_THREAD*sizeof(pthread_t));
-    res.sons = malloc(NB_THREAD*sizeof(pthread_t*));
-    for(int i = 0 ; i < NB_THREAD ; i++)
-        res.sons[i] = malloc(NB_THREAD*sizeof(pthread_t));
-    // initialisation
-    for(int i = 0 ; i < NB_THREAD ; i++){
-        res.used[i] = res.ids[i] = 0;
-        for(int j = 0 ; j  < NB_THREAD ;++j)
-            res.sons[i][j] = 0;
-    }
-    return res;
-}
-
-void free_threads(Thread_manager *t){
-    if(t == NULL)
-        return;
-    if(t->used != NULL)
-        free(t->used);
-    if(t->ids != NULL)
-        free(t->ids);
-    if(t->sons != NULL)
-        for(int i = 0 ; i < NB_THREAD ; ++i)
-            if(t->sons[i] != NULL)
-                free(t->sons[i]);
-    t = NULL;
-}
-
 chemin solve_labyrinth_threads(Laby l){
     // trouvons le depart
     Case start = (Case){UNUSED, UNUSED};
@@ -65,308 +35,131 @@ chemin solve_labyrinth_threads(Laby l){
     for(int i = 0; i < CHEMIN_LENGTH; i++)
         reponse[i] = (Case){UNUSED, UNUSED};
 
-    // preparer de l'espace pour les threads
-    Thread_manager tm = creer_threads();
-    int sol = 0;
-    // lancer la recursivite
-    Thread_args args = {&l, reponse, &start, &end, &tm, pthread_self(), &sol};
+    // lancer la recursivite avec un thread !!!
+    Thread_args args;
+    args.l = &l;
+    args.pere = pthread_self();
+    args.res = malloc(NB_THREAD*sizeof(chemin));
+    for(int i = 0 ; i < NB_THREAD ; ++i)
+        args.res[i] = malloc(CHEMIN_LENGTH*sizeof(Case));
+    args.assoc = malloc(NB_THREAD*sizeof(Thread_chemin));
+    for(int i = 0 ; i < NB_THREAD ; ++i){
+        args.assoc[i].id = 0; // pas de threads encore
+        args.assoc[i].path = args.res[i];
+    }
+    args.assoc[0].id = args.pere; // enregistrer le pere
+    args.end = &end;
+    args.current = &start;
+    args.tids = malloc(NB_THREAD*sizeof(pthread_t));
+    args.fini = malloc(sizeof(int));
+    *args.fini = 0;
+
+
     printf("avant le lancement de la recursivite\n");
-    rec_find_thread((void*)&args);
+    rec_find_thread((void*)&args); // a lancer dans un thread !!!
     printf("apres le lancement de la recursivite\n");
     // rendre l'espace utilisé
-    free_threads(&tm);
     
     //remettre la case depart : 
     l.m[start.col][start.line] = ENTREE;
 
     // nettoyer la reponse si necessaire : 
-    if(!check_solution(l, reponse)) nettoyer_chemin(reponse);
+    // if(!check_solution(l, reponse)) nettoyer_chemin(reponse);
 
     return reponse;
 }
-void end_actual_thread_signal_without_cancel(Thread_manager *t){
-    for(int i = 0 ; i  < NB_THREAD ; i++)
-        if(pthread_self() == t->ids[i]){
-            t->used[i] = 0;
-            return;
-        }
-}
 
-void end_actual_thread_signal(Thread_manager *t){
-    for(int i = 0 ; i  < NB_THREAD ; i++)
-        if(pthread_self() == t->ids[i]){
-            t->used[i] = 0;
-            return;
-        }
-    pthread_cancel(pthread_self());
-}
-
-int actual_ind(Thread_manager *t){
-    for(int i = 0 ; i < NB_THREAD ; i++)
-        if(pthread_self() == t->ids[i])
+int get_indice(Thread_args t){
+    for(int i = 0 ; i < NB_THREAD ; ++i)
+        if(t.assoc->id == pthread_self())
             return i;
     return -1;
 }
 
-int nb_sons(Thread_manager *t){
-    int count = 0;
-    for(int i = 0 ; i < NB_THREAD ; i++)
-        count += (t->sons[i] != 0);
-    return count;
+int get_free_indice(Thread_args t){
+    for(int i = 0 ; i < NB_THREAD ; ++i)
+        if(t.assoc->id == 0)
+            return i;
+    printf("pas de place disponible pour un nv thread 'int get_free_indice(Thread_args t)'\n");
+    return -1;
 }
 
-void end_actual_thread_and_sons_return_best_chemin(Thread_manager *t){
-    chemin rep = malloc(NB_THREAD*sizeof(Case)); // ATTENTION ne pas oublier le 'FREE' apres
-    Case temp[NB_THREAD];
-    temp[0] = (Case){UNUSED, UNUSED};
-    rep[0] = (Case){UNUSED, UNUSED};
-    int ret;
-    for(int i = 0 ; i < nb_sons(t) ; ++i){ // pour chaque fils
-        ret = pthread_join(*t->sons[i], (void**)&temp);
-        if(ret > 0){
-            printf("erreur fermeture du thread %ld\tcode%d\n", *t->sons[i], ret);
-            exit(1);
-        }
-        if(rep[0].col == UNUSED && rep[0].line == UNUSED && temp[0].col != UNUSED && temp[0].line != UNUSED) // copy temp in rep if rep isn't an answer and temp is an answer
-            for(int i = 0 ; i  < NB_THREAD ; i++)
-                rep[i] = temp[i]; 
-    }
-    pthread_exit((void*)rep);
-}
-
-chemin end_sons_and_return_best_chemin(Thread_manager *t){
-    chemin rep = malloc(NB_THREAD*sizeof(Case)); // ATTENTION ne pas oublier le 'FREE' apres
-    Case temp[NB_THREAD];
-    temp[0] = (Case){UNUSED, UNUSED};
-    rep[0] = (Case){UNUSED, UNUSED};
-    int ret;
-    for(int i = 0 ; i < nb_sons(t) ; ++i){ // pour chaque fils
-        ret = pthread_join(*t->sons[i], (void**)&temp);
-        if(ret > 0){
-            printf("erreur fermeture du thread %ld\tcode%d\n", *t->sons[i], ret);
-            exit(1);
-        }
-        if(rep[0].col == UNUSED && rep[0].line == UNUSED && temp[0].col != UNUSED && temp[0].line != UNUSED) // copy temp in rep if rep isn't an answer and temp is an answer
-            for(int i = 0 ; i  < NB_THREAD ; i++)
-                rep[i] = temp[i]; 
-    }
-    return rep;
-}
-
-
-void end_actual_thread_and_sons_return_self_chemin(Thread_args *ta){
-    int ret;
-    for(int i = 0 ; i < nb_sons(ta->tm) ; ++i){ // pour chaque fils
-        ret = pthread_join(*ta->tm->sons[i], NULL);
-        if(ret > 0){
-            printf("erreur fermeture du thread %ld\tcode%d\n", *ta->tm->sons[i], ret);
-            exit(1);
-        }
-    }
-    pthread_exit((void*)ta->res);
-}
-
-int max_thread_reached(Thread_manager tm){
-    for(int i = 0 ; i< NB_THREAD ; ++i)
-        if(tm.used[i] == 0)
+int max_threads_reached(Thread_args t){
+    for(int i = 0 ; i < NB_THREAD ; ++i)
+        if(t.tids[i] == 0)
             return 0;
     return 1;
 }
 
 
-
-// gerer le cas du pere qui doit retourner le chemin finale
-chemin rec_find_thread(void* th_args){
+void* rec_find_thread(void* th_args){
     Thread_args* t = (Thread_args*)th_args;
-    
-    // si une réponse est trouvée, finir le thread actuel, seulement s'il n'est père d'aucun thread, sinon attendre ses fils
-    if(*(t->solution_trouvee) && pthread_self() != t->father)
-        end_actual_thread_and_sons_return_best_chemin(t->tm);
+    int thread_num = get_indice(*t);
 
-    //verifier si la case end est atteinte
-    if(cases_egales(*t->current, *t->end)){
-         // ajouter à la main la derniere case dans le chemin :
-        for(int i=0; i<CHEMIN_LENGTH; i++)
-            if(t->res[i].col == UNUSED && t->res[i].line == UNUSED){
-                t->res[i] = *t->end;
-                break;
-            }
-        t->res[CHEMIN_LENGTH-1] = (Case){END_SIGNAL, END_SIGNAL};
-        *t->solution_trouvee = 1;
-        if(pthread_self() == t->father)
-            return t->res; // retourner le resultat normalement si processus pere, celui qui a ete appele par la fonction initialisant la recusivite
-        else    
-            end_actual_thread_and_sons_return_self_chemin(t); // arreter les processus fils et renvoyer au pere la solution
+    if(*t->fini){ // chemin trouvé par un autre thread
+        // supprimer le chemin fait par le thread en marquant les cases comme inutilisees
+        for(int i = 0 ; i < CHEMIN_LENGTH ; ++i)
+            t->res[thread_num][0] = (Case){UNUSED, UNUSED};
+        pthread_exit(NULL); // stopper le thread ici
     }
 
+    if(cases_egales(*(t->current), *(t->end))){ // le thread actuel a trouvé la bonne réponse
+        *t->fini = 1; // communiquer aux autres threads qu'il faut qu'ils s'arretent
+        ajouter_au_dernier_voisin(t->res[thread_num], *(t->current)); // ajouter la derniere case (end)
+        pthread_exit(NULL); // stopper le thread ici
+    }   
 
 
     // marquer la case comme visitée : 
     t->l->m[t->current->col][t->current->line] = VISITE;
 
-    //ajouter la case dans le chemin
-    ajouter_coordonees_au_chemin_au_dernier_voisin(t->current->col, t->current->line, t->res);
+    // ajouter la case dans le chemin du thread actuel
+    ajouter_au_dernier_voisin(t->res[thread_num], *(t->current));
 
-    // verifier les 4 directions // si un choix, lancer une recursivite simple, si plusieurs choix, lancer une recursivite et completer avec des threads
-    // chaque thread doit etre lance avec une copie du chemin pour eviter quils ecrivent tous dans le meme vecteur
-    int up = 0, left = 0, right = 0, down = 0;
-    if(t->current->line-1 >= 0 && !Case_in_chemin(t->current->col, t->current->line-1, t->res) && t->l->m[t->current->col][t->current->line-1] != MUR && t->l->m[t->current->col][t->current->line-1] !=  VISITE) up = 1;
-    if(t->current->col - 1 >= 0 && !Case_in_chemin(t->current->col-1, t->current->line, t->res) && t->l->m[t->current->col-1][t->current->line] != MUR && t->l->m[t->current->col-1][t->current->line] !=  VISITE) left = 1;  
-    if(t->current->line+1 < t->l->cols && !Case_in_chemin(t->current->col, t->current->line+1, t->res) && t->l->m[t->current->col][t->current->line+1] != MUR && t->l->m[t->current->col][t->current->line+1] !=  VISITE) down = 1;
-    if(t->current->col+1 < t->l->lignes && !Case_in_chemin(t->current->col+1, t->current->line, t->res) && t->l->m[t->current->col+1][t->current->line] != MUR && t->l->m[t->current->col+1][t->current->line] !=  VISITE) right = 1;
+    // regarder dans les 4 directions
 
-    int nb_ways = 0;
+    int up = 0, left = 0, right = 0, down = 0, nb_direction = 0;
+    if(t->current->line-1 >= 0 && !Case_in_chemin(t->current->col, t->current->line-1, t->res[thread_num]) && t->l->m[t->current->col][t->current->line-1] != MUR && t->l->m[t->current->col][t->current->line-1] !=  VISITE) up = 1;
+    if(t->current->col - 1 >= 0 && !Case_in_chemin(t->current->col-1, t->current->line, t->res[thread_num]) && t->l->m[t->current->col-1][t->current->line] != MUR && t->l->m[t->current->col-1][t->current->line] !=  VISITE) left = 1;  
+    if(t->current->line+1 < t->l->cols && !Case_in_chemin(t->current->col, t->current->line+1, t->res[thread_num]) && t->l->m[t->current->col][t->current->line+1] != MUR && t->l->m[t->current->col][t->current->line+1] !=  VISITE) down = 1;
+    if(t->current->col+1 < t->l->lignes && !Case_in_chemin(t->current->col+1, t->current->line, t->res[thread_num]) && t->l->m[t->current->col+1][t->current->line] != MUR && t->l->m[t->current->col+1][t->current->line] !=  VISITE) right = 1;
+
+    if(!left && !up && !right && !down){ // supprimer le chemin fait par le thread en marquant les cases comme inutilisees
+        for(int i = 0 ; i < CHEMIN_LENGTH ; ++i)
+            t->res[thread_num][0] = (Case){UNUSED, UNUSED};
+        pthread_exit(NULL); // arreter le thread ici
+    }
+
     if(up){
-        // simple recusivite
-        Thread_args nt;
-        Case ncc = {t->current->col, t->current->line-1};
-        nt.current = &ncc;
-        nt.end = t->end;
-        nt.father = t->father;
-        nt.l = t->l;
-        nt.solution_trouvee = t->solution_trouvee;
-        
-        nt.tm = t->tm;
-
-        nt.res = t->res;
-        rec_find_thread((void*)&nt);
-
-        ++nb_ways;
-    }
-    if(left){
-        Thread_args nt;
-            Case ncc = {t->current->col-1, t->current->line};
-            nt.current = &ncc;
-            nt.end = t->end;
-            nt.father = t->father;
-            nt.l = t->l;
-            nt.solution_trouvee = t->solution_trouvee;
-            nt.tm = t->tm;
-        if(nb_ways == 0 || max_thread_reached(*t->tm)){ // simple recursivite si le nombre max de thread est atteint
-            nt.res = t->res;
+        Case new_current = (Case){t->current->col, t->current->line-1};
+        Thread_args nt = (Thread_args){t->l, t->res, &new_current, t->end, t->tids, t->pere, t->assoc, t->fini};
+        if(nb_direction++ == 0 || max_threads_reached(*t)) // simple recusivité à lancer dans le thread actuel si une seule direction ou si le nb max de thread est atteint
             rec_find_thread((void*)&nt);
-        }else{ // creer un thread
-            // creer et copier un chemin
-            Case nres[CHEMIN_LENGTH];
-            for(int i = 0 ; i < CHEMIN_LENGTH ; ++i)
-                nres[i] = t->res[i];
-            nt.res = nres;
-            int libre = 0, retour, sons_nb = 0;
-            // trouver une case libre
-            while(t->tm->used[libre++]){}
-            // trouver le numero de fils a attribuer
-            while(t->tm->sons[sons_nb]) sons_nb++;
-            // creer le thread
-            retour = pthread_create(nt.tm->sons[sons_nb], NULL, (void*)rec_find_thread, (void*)&nt);
-            if(retour != 0){ // verifier le type de retour
-                printf("erreur creation de thread, code %d\n", retour);
-                exit(1);
-            }
-            // bien copier les infos et mettre a jour les aarguments
-            t->tm->sons[sons_nb] = nt.tm->sons[sons_nb];
-            t->tm->ids[libre] = *nt.tm->sons[sons_nb];
-            t->tm->used[libre] = 1;
-        }   
-        ++nb_ways;  
-    }
-    if(down){
-        Thread_args nt;
-            Case ncc = {t->current->col, t->current->line+1};
-            nt.current = &ncc;
-            nt.end = t->end;
-            nt.father = t->father;
-            nt.l = t->l;
-            nt.solution_trouvee = t->solution_trouvee;
-            nt.tm = t->tm;
-        if(nb_ways == 0 || max_thread_reached(*t->tm)){ // simple recursivite si le nombre max de thread est atteint
-            nt.res = t->res;
+        else // lancer avec un thread
+            pthread_create((pthread_t)(nt.assoc->id + get_free_indice(nt)), NULL, (void*)rec_find_thread, (void*)&nt);
+    }if(left){
+        Case new_current = (Case){t->current->col-1, t->current->line};
+        Thread_args nt = (Thread_args){t->l, t->res, &new_current, t->end, t->tids, t->pere, t->assoc, t->fini};
+        if(nb_direction++ == 0 || max_threads_reached(*t)) // simple recusivité à lancer dans le thread actuel si une seule direction ou si le nb max de thread est atteint
             rec_find_thread((void*)&nt);
-        }else{ // creer un thread
-            // creer et copier un chemin
-            Case nres[CHEMIN_LENGTH];
-            for(int i = 0 ; i < CHEMIN_LENGTH ; ++i)
-                nres[i] = t->res[i];
-            nt.res = nres;
-            int libre = 0, retour, sons_nb = 0;
-            // trouver une case libre
-            while(t->tm->used[libre++]){}
-            // trouver le numero de fils a attribuer
-            while(t->tm->sons[sons_nb]) sons_nb++;
-            // creer le thread
-            retour = pthread_create(nt.tm->sons[sons_nb], NULL, (void*)rec_find_thread, (void*)&nt);
-            if(retour != 0){ // verifier le type de retour
-                printf("erreur creation de thread, code %d\n", retour);
-                exit(1);
-            }
-            // bien copier les infos et mettre a jour les aarguments
-            t->tm->sons[sons_nb] = nt.tm->sons[sons_nb];
-            t->tm->ids[libre] = *nt.tm->sons[sons_nb];
-            t->tm->used[libre] = 1;
-        }   
-        ++nb_ways;  
-    }
-    if(right){
-        Thread_args nt;
-            Case ncc = {t->current->col+1, t->current->line};
-            nt.current = &ncc;
-            nt.end = t->end;
-            nt.father = t->father;
-            nt.l = t->l;
-            nt.solution_trouvee = t->solution_trouvee;
-            nt.tm = t->tm;
-        if(nb_ways == 0 || max_thread_reached(*t->tm)){ // simple recursivite si le nombre max de thread est atteint
-            nt.res = t->res;
+        else // lancer avec un thread
+            pthread_create((pthread_t)(nt.assoc->id + get_free_indice(nt)), NULL, (void*)rec_find_thread, (void*)&nt);
+    }if(down){
+        Case new_current = (Case){t->current->col, t->current->line+1};
+        Thread_args nt = (Thread_args){t->l, t->res, &new_current, t->end, t->tids, t->pere, t->assoc, t->fini};
+        if(nb_direction++ == 0 || max_threads_reached(*t)) // simple recusivité à lancer dans le thread actuel si une seule direction ou si le nb max de thread est atteint
             rec_find_thread((void*)&nt);
-        }else{ // creer un thread
-            // creer et copier un chemin
-            Case nres[CHEMIN_LENGTH];
-            for(int i = 0 ; i < CHEMIN_LENGTH ; ++i)
-                nres[i] = t->res[i];
-            nt.res = nres;
-            int libre = 0, retour, sons_nb = 0;
-            // trouver une case libre
-            while(t->tm->used[libre++]){}
-            // trouver le numero de fils a attribuer
-            while(t->tm->sons[sons_nb]) sons_nb++;
-            // creer le thread
-            retour = pthread_create(nt.tm->sons[sons_nb], NULL, (void*)rec_find_thread, (void*)&nt);
-            if(retour != 0){ // verifier le type de retour
-                printf("erreur creation de thread, code %d\n", retour);
-                exit(1);
-            }
-            // bien copier les infos et mettre a jour les aarguments
-            t->tm->sons[sons_nb] = nt.tm->sons[sons_nb];
-            t->tm->ids[libre] = *nt.tm->sons[sons_nb];
-            t->tm->used[libre] = 1;
-        }   
-        ++nb_ways;  
+        else // lancer avec un thread
+            pthread_create((pthread_t)(nt.assoc->id + get_free_indice(nt)), NULL, (void*)rec_find_thread, (void*)&nt);
+    }if(right){
+        Case new_current = (Case){t->current->col+1, t->current->line};
+        Thread_args nt = (Thread_args){t->l, t->res, &new_current, t->end, t->tids, t->pere, t->assoc, t->fini};
+        if(nb_direction++ == 0 || max_threads_reached(*t)) // simple recusivité à lancer dans le thread actuel si une seule direction ou si le nb max de thread est atteint
+            rec_find_thread((void*)&nt);
+        else // lancer avec un thread
+            pthread_create((pthread_t)(nt.assoc->id + get_free_indice(nt)), NULL, (void*)rec_find_thread, (void*)&nt);
     }
 
-
-    // a cet endroit, toutes les fonctions recursives / threads necessaires ont etes lances.
-    // 3 cas de figures
-
-    // 1 : aucun chemin possible (cul de sac)
-    if(nb_ways == 0){
-        // attendre que les fils se terminent
-        if(pthread_self() != t->father) end_actual_thread_and_sons_return_best_chemin(t->tm); // pas le thread original
-        else return end_sons_and_return_best_chemin(t->tm);   // thread original
-    }
-    // 2 : un chemin possible => recursivite simple lancee
-    else if(nb_ways == 1){
-        // attendre que les fils se terminent
-        if(pthread_self() != t->father) end_actual_thread_and_sons_return_best_chemin(t->tm); // pas le thread original
-        else return end_sons_and_return_best_chemin(t->tm);   // thread original
-    }
-    // 3 : plusieurs chemins possibles => recusivite simple + threads
-    else if(nb_ways > 1){
-        // attendre que les fils se terminent
-        if(pthread_self() != t->father) end_actual_thread_and_sons_return_best_chemin(t->tm); // pas le thread original
-        else return end_sons_and_return_best_chemin(t->tm);   // thread original
-    }
-
-
-    return t->res;
 }
 
 
@@ -440,7 +233,7 @@ void ajouter_coordonees_au_chemin_au_dernier_voisin(int col, int line, chemin c)
 
 int ajouter_au_dernier_voisin(chemin c, Case a_ajouter){
     for(int i = CHEMIN_LENGTH-2; i >= 0; i--){
-        if(!(c[i].col == UNUSED && c[i].line == UNUSED) && sont_voisines(c[i], a_ajouter)){// skipper toutes les cases à la fin de coordonnees{-1 ; 1}
+        if(!(c[i].col == UNUSED && c[i].line == UNUSED) && sont_voisines(c[i], a_ajouter)){// skipper toutes les cases à la fin de coordonnees{-1 ; -1}
             c[i+1] = a_ajouter;
             return 1; // case ajoutee
         }
