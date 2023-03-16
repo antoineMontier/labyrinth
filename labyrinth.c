@@ -122,9 +122,9 @@ void end_actual_thread_and_sons_return_best_chemin(Thread_manager *t){
     rep[0] = (Case){UNUSED, UNUSED};
     int ret;
     for(int i = 0 ; i < nb_sons(t) ; ++i){ // pour chaque fils
-        ret = pthread_join(t->sons[i], (void**)&temp);
+        ret = pthread_join(*t->sons[i], (void**)&temp);
         if(ret > 0){
-            printf("erreur fermeture du thread %ld\tcode%d\n", t->sons[i], ret);
+            printf("erreur fermeture du thread %ld\tcode%d\n", *t->sons[i], ret);
             exit(1);
         }
         if(rep[0].col == UNUSED && rep[0].line == UNUSED && temp[0].col != UNUSED && temp[0].line != UNUSED) // copy temp in rep if rep isn't an answer and temp is an answer
@@ -141,9 +141,9 @@ chemin end_sons_and_return_best_chemin(Thread_manager *t){
     rep[0] = (Case){UNUSED, UNUSED};
     int ret;
     for(int i = 0 ; i < nb_sons(t) ; ++i){ // pour chaque fils
-        ret = pthread_join(t->sons[i], (void**)&temp);
+        ret = pthread_join(*t->sons[i], (void**)&temp);
         if(ret > 0){
-            printf("erreur fermeture du thread %ld\tcode%d\n", t->sons[i], ret);
+            printf("erreur fermeture du thread %ld\tcode%d\n", *t->sons[i], ret);
             exit(1);
         }
         if(rep[0].col == UNUSED && rep[0].line == UNUSED && temp[0].col != UNUSED && temp[0].line != UNUSED) // copy temp in rep if rep isn't an answer and temp is an answer
@@ -157,9 +157,9 @@ chemin end_sons_and_return_best_chemin(Thread_manager *t){
 void end_actual_thread_and_sons_return_self_chemin(Thread_args *ta){
     int ret;
     for(int i = 0 ; i < nb_sons(ta->tm) ; ++i){ // pour chaque fils
-        ret = pthread_join(ta->tm->sons[i], NULL);
+        ret = pthread_join(*ta->tm->sons[i], NULL);
         if(ret > 0){
-            printf("erreur fermeture du thread %ld\tcode%d\n", ta->tm->sons[i], ret);
+            printf("erreur fermeture du thread %ld\tcode%d\n", *ta->tm->sons[i], ret);
             exit(1);
         }
     }
@@ -250,6 +250,7 @@ chemin rec_find_thread(void* th_args){
             Case nres[CHEMIN_LENGTH];
             for(int i = 0 ; i < CHEMIN_LENGTH ; ++i)
                 nres[i] = t->res[i];
+            nt.res = nres;
             int libre = 0, retour, sons_nb = 0;
             // trouver une case libre
             while(t->tm->used[libre++]){}
@@ -263,7 +264,7 @@ chemin rec_find_thread(void* th_args){
             }
             // bien copier les infos et mettre a jour les aarguments
             t->tm->sons[sons_nb] = nt.tm->sons[sons_nb];
-            t->tm->ids[libre] = nt.tm->sons[sons_nb];
+            t->tm->ids[libre] = *nt.tm->sons[sons_nb];
             t->tm->used[libre] = 1;
         }   
         ++nb_ways;  
@@ -285,6 +286,7 @@ chemin rec_find_thread(void* th_args){
             Case nres[CHEMIN_LENGTH];
             for(int i = 0 ; i < CHEMIN_LENGTH ; ++i)
                 nres[i] = t->res[i];
+            nt.res = nres;
             int libre = 0, retour, sons_nb = 0;
             // trouver une case libre
             while(t->tm->used[libre++]){}
@@ -298,7 +300,7 @@ chemin rec_find_thread(void* th_args){
             }
             // bien copier les infos et mettre a jour les aarguments
             t->tm->sons[sons_nb] = nt.tm->sons[sons_nb];
-            t->tm->ids[libre] = nt.tm->sons[sons_nb];
+            t->tm->ids[libre] = *nt.tm->sons[sons_nb];
             t->tm->used[libre] = 1;
         }   
         ++nb_ways;  
@@ -320,6 +322,7 @@ chemin rec_find_thread(void* th_args){
             Case nres[CHEMIN_LENGTH];
             for(int i = 0 ; i < CHEMIN_LENGTH ; ++i)
                 nres[i] = t->res[i];
+            nt.res = nres;
             int libre = 0, retour, sons_nb = 0;
             // trouver une case libre
             while(t->tm->used[libre++]){}
@@ -333,7 +336,7 @@ chemin rec_find_thread(void* th_args){
             }
             // bien copier les infos et mettre a jour les aarguments
             t->tm->sons[sons_nb] = nt.tm->sons[sons_nb];
-            t->tm->ids[libre] = nt.tm->sons[sons_nb];
+            t->tm->ids[libre] = *nt.tm->sons[sons_nb];
             t->tm->used[libre] = 1;
         }   
         ++nb_ways;  
