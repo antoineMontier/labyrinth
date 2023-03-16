@@ -30,11 +30,6 @@ chemin solve_labyrinth_threads(Laby l){
         exit(1);
     }
 
-    chemin reponse = malloc(sizeof(chemin) * CHEMIN_LENGTH);
-    
-    for(int i = 0; i < CHEMIN_LENGTH; i++)
-        reponse[i] = (Case){UNUSED, UNUSED};
-
     // lancer la recursivite avec un thread !!!
     Thread_args args;
     args.l = &l;
@@ -77,7 +72,10 @@ chemin solve_labyrinth_threads(Laby l){
             
 
     // rendre l'espace utilisé
-    //TODO
+    for(int i = 0 ; i < NB_THREAD ; ++i)
+        free(args.res[i]);
+    free(args.assoc);
+    free(args.res);
 
 
     
@@ -116,6 +114,8 @@ int max_threads_reached(Thread_args t){
 void* rec_find_thread(void* th_args){
     Thread_args* t = (Thread_args*)th_args;
     int thread_num = get_indice(*t);
+    printf("I'm thread %ld\t located on slot c: %d | l: %d\tmax_threads_reached ? %d", pthread_self(), t->current->col, t->current->line, max_threads_reached(*t));
+    fflush(stdout);
 
     if(*t->fini){ // chemin trouvé par un autre thread
         // supprimer le chemin fait par le thread en marquant les cases comme inutilisees
@@ -145,42 +145,76 @@ void* rec_find_thread(void* th_args){
     if(t->current->line+1 < t->l->cols && !Case_in_chemin(t->current->col, t->current->line+1, t->res[thread_num]) && t->l->m[t->current->col][t->current->line+1] != MUR && t->l->m[t->current->col][t->current->line+1] !=  VISITE) down = 1;
     if(t->current->col+1 < t->l->lignes && !Case_in_chemin(t->current->col+1, t->current->line, t->res[thread_num]) && t->l->m[t->current->col+1][t->current->line] != MUR && t->l->m[t->current->col+1][t->current->line] !=  VISITE) right = 1;
 
+    // ================ a supprimer 
+    if(left)
+        nb_direction++;
+    if(up)
+        nb_direction++;
+    if(right)
+        nb_direction++;
+    if(left)
+        nb_direction++;
+
+    printf("\tI have %d directions possible\n", nb_direction);
+    nb_direction = 0;
+
+
+    // ================
+
+
+
+
+
     if(!left && !up && !right && !down){ // supprimer le chemin fait par le thread en marquant les cases comme inutilisees
         for(int i = 0 ; i < CHEMIN_LENGTH ; ++i)
             t->res[thread_num][0] = (Case){UNUSED, UNUSED};
         pthread_exit(NULL); // arreter le thread ici
     }
 
+
     if(up){
+        printf("up nb_dir = %d\n", nb_direction); 
         Case new_current = (Case){t->current->col, t->current->line-1};
         Thread_args nt = (Thread_args){t->l, t->res, &new_current, t->end, t->tids, t->pere, t->assoc, t->fini};
         if(nb_direction++ == 0 || max_threads_reached(*t)) // simple recusivité à lancer dans le thread actuel si une seule direction ou si le nb max de thread est atteint
             rec_find_thread((void*)&nt);
-        else // lancer avec un thread
-            pthread_create((pthread_t)(nt.assoc->id + get_free_indice(nt)), NULL, (void*)rec_find_thread, (void*)&nt);
+        else{ // lancer avec un thread
+            printf("creating new thread.....\n");
+            pthread_create((pthread_t*)(nt.assoc->id + get_free_indice(nt)), NULL, (void*)rec_find_thread, (void*)&nt);
+        }
     }if(left){
+        printf("left nb_dir = %d\n", nb_direction);   
         Case new_current = (Case){t->current->col-1, t->current->line};
         Thread_args nt = (Thread_args){t->l, t->res, &new_current, t->end, t->tids, t->pere, t->assoc, t->fini};
         if(nb_direction++ == 0 || max_threads_reached(*t)) // simple recusivité à lancer dans le thread actuel si une seule direction ou si le nb max de thread est atteint
             rec_find_thread((void*)&nt);
-        else // lancer avec un thread
-            pthread_create((pthread_t)(nt.assoc->id + get_free_indice(nt)), NULL, (void*)rec_find_thread, (void*)&nt);
+        else{ // lancer avec un thread
+            printf("creating new thread.....\n");
+            pthread_create((pthread_t*)(nt.assoc->id + get_free_indice(nt)), NULL, (void*)rec_find_thread, (void*)&nt);
+        }
     }if(down){
+        printf("down nb_dir = %d\n", nb_direction);   
         Case new_current = (Case){t->current->col, t->current->line+1};
         Thread_args nt = (Thread_args){t->l, t->res, &new_current, t->end, t->tids, t->pere, t->assoc, t->fini};
         if(nb_direction++ == 0 || max_threads_reached(*t)) // simple recusivité à lancer dans le thread actuel si une seule direction ou si le nb max de thread est atteint
             rec_find_thread((void*)&nt);
-        else // lancer avec un thread
-            pthread_create((pthread_t)(nt.assoc->id + get_free_indice(nt)), NULL, (void*)rec_find_thread, (void*)&nt);
+        else{ // lancer avec un thread
+            printf("creating new thread.....\n");
+            pthread_create((pthread_t*)(nt.assoc->id + get_free_indice(nt)), NULL, (void*)rec_find_thread, (void*)&nt);
+        }
     }if(right){
+        printf("right nb_dir = %d\n", nb_direction);  
         Case new_current = (Case){t->current->col+1, t->current->line};
         Thread_args nt = (Thread_args){t->l, t->res, &new_current, t->end, t->tids, t->pere, t->assoc, t->fini};
         if(nb_direction++ == 0 || max_threads_reached(*t)) // simple recusivité à lancer dans le thread actuel si une seule direction ou si le nb max de thread est atteint
             rec_find_thread((void*)&nt);
-        else // lancer avec un thread
-            pthread_create((pthread_t)(nt.assoc->id + get_free_indice(nt)), NULL, (void*)rec_find_thread, (void*)&nt);
+        else{ // lancer avec un thread
+            printf("creating new thread.....\n");
+            pthread_create((pthread_t*)(nt.assoc->id + get_free_indice(nt)), NULL, (void*)rec_find_thread, (void*)&nt);
+        }
     }
 
+    return NULL;
 }
 
 
