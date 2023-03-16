@@ -367,7 +367,6 @@ chemin rec_find_thread(void* th_args){
 
 
     return t->res;
-
 }
 
 
