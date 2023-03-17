@@ -1,8 +1,10 @@
 #include "labyrinth.h"
 
+extern Thread_args *global_args;
+
 int main(){
     
-    Laby l = creer_labyrinth(11, 11);
+    Laby l = creer_labyrinth(9, 9);
     print_labyrinth(l);
     chemin ans = solve_labyrinth_threads(l);
     printf("before print_chemin\n");

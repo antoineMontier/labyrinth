@@ -1,5 +1,7 @@
 #include "labyrinth.h"  
 
+Thread_args * global_args;
+
 chemin solve_labyrinth_threads(Laby l){
     // trouvons le depart
     Case start = (Case){UNUSED, UNUSED};
@@ -39,8 +41,9 @@ chemin solve_labyrinth_threads(Laby l){
     global_args->res = malloc(NB_THREAD*sizeof(chemin));
     for(int i = 0 ; i < NB_THREAD ; i++){
         global_args->res[i] = malloc(CHEMIN_LENGTH*sizeof(chemin));
-        for(int j = 0 ; j < CHEMIN_LENGTH ; j++)
+        for(int j = 1 ; j < CHEMIN_LENGTH ; j++)
             global_args->res[i][j] = (Case){UNUSED, UNUSED};
+        global_args->res[i][0] = (Case){start.col, start.line};
     }
     global_args->threads = malloc(NB_THREAD*sizeof(pthread_t));
     for(int i = 0 ; i < NB_THREAD ; i++)
@@ -129,7 +132,7 @@ void rec_find_thread(){
         printf("impossible de connaitre l'indice de la case courante du thread %ld\n", pthread_self());
     if(case_ind == CHEMIN_LENGTH)
         printf("Dans le thread %ld, il ne semble pas y avoir de case courante\n", pthread_self());
-    // printf("I'm thread %ld\t located on slot c: %d | l: %d\tmax_threads_reached ? %d", pthread_self(), t->current->col, t->current->line, max_threads_reached(*t));
+    printf("I'm thread %ld\t located on slot c: %d | l: %d\tmax_threads_reached ? %d", pthread_self(), global_args->res[thread_num][case_ind].col, global_args->res[thread_num][case_ind].line, 0);
     // fflush(stdout);
 
     if(*(global_args->fini)){ // chemin trouvé par un autre thread
@@ -196,7 +199,7 @@ void rec_find_thread(){
             ajouter_coordonees_au_chemin_au_dernier_voisin(global_args->res[thread_num][case_ind].col, global_args->res[thread_num][case_ind].line-1, global_args->res[thread_num]);
             rec_find_thread();
         }else{ // lancer avec un thread
-            printf("creating new thread.....\n");
+            printf("creating new thread..from %d %d   to up\n", global_args->res[thread_num][case_ind].col, global_args->res[thread_num][case_ind].line);
             // copier le chemin parcouru avant de lancer le nouveau thread
             for(int k = 0; k < CHEMIN_LENGTH; ++k) // optimisation possible avec le check de {UNUSED,UNUSED}
                 global_args->res[nvl_place][k] = global_args->res[thread_num][k];
@@ -211,7 +214,7 @@ void rec_find_thread(){
             ajouter_coordonees_au_chemin_au_dernier_voisin(global_args->res[thread_num][case_ind].col-1, global_args->res[thread_num][case_ind].line, global_args->res[thread_num]);
             rec_find_thread();
         }else{ // lancer avec un thread
-            printf("creating new thread.....\n");
+            printf("creating new thread..from %d %d   to left\n", global_args->res[thread_num][case_ind].col, global_args->res[thread_num][case_ind].line);
             // copier le chemin parcouru avant de lancer le nouveau thread
             for(int k = 0; k < CHEMIN_LENGTH; ++k) // optimisation possible avec le check de {UNUSED,UNUSED}
                 global_args->res[nvl_place][k] = global_args->res[thread_num][k];
@@ -226,7 +229,7 @@ void rec_find_thread(){
             ajouter_coordonees_au_chemin_au_dernier_voisin(global_args->res[thread_num][case_ind].col, global_args->res[thread_num][case_ind].line+1, global_args->res[thread_num]);
             rec_find_thread();
         }else{ // lancer avec un thread
-            printf("creating new thread.....\n");
+            printf("creating new thread..from %d %d   to down\n", global_args->res[thread_num][case_ind].col, global_args->res[thread_num][case_ind].line);
             // copier le chemin parcouru avant de lancer le nouveau thread
             for(int k = 0; k < CHEMIN_LENGTH; ++k) // optimisation possible avec le check de {UNUSED,UNUSED}
                 global_args->res[nvl_place][k] = global_args->res[thread_num][k];
@@ -241,7 +244,7 @@ void rec_find_thread(){
             ajouter_coordonees_au_chemin_au_dernier_voisin(global_args->res[thread_num][case_ind].col+1, global_args->res[thread_num][case_ind].line, global_args->res[thread_num]);
             rec_find_thread();
         }else{ // lancer avec un thread
-            printf("creating new thread.....\n");
+            printf("creating new thread..from %d %d   to right\n", global_args->res[thread_num][case_ind].col, global_args->res[thread_num][case_ind].line);
             // copier le chemin parcouru avant de lancer le nouveau thread
             for(int k = 0; k < CHEMIN_LENGTH; ++k) // optimisation possible avec le check de {UNUSED,UNUSED}
                 global_args->res[nvl_place][k] = global_args->res[thread_num][k];

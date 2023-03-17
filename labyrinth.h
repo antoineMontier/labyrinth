@@ -46,8 +46,6 @@ typedef struct {
     int * fini;
 } Thread_args;
 
-Thread_args * global_args;
-
 Laby creer_labyrinth(int cols, int lines);
 int check_solution(Laby, chemin);
 void free_labyrinth(Laby*);
