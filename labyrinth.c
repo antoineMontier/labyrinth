@@ -2,6 +2,20 @@
 
 Thread_args * global_args;
 
+void print_sols(){
+    for(int i = 0 ; i < NB_THREAD ; i++){
+        printf("%ld\t", global_args->threads[i]);
+        print_chemin(global_args->res[i]);
+    }
+}
+
+void print_ids(){
+    printf("Threads _ids : ");
+    for(int i =  0; i < NB_THREAD ; ++i)
+        printf("%ld\t", global_args->threads[i]);
+    printf("\n");
+}
+
 chemin solve_labyrinth_threads(Laby l){
     // trouvons le depart
     Case start = (Case){UNUSED, UNUSED};
@@ -53,12 +67,16 @@ chemin solve_labyrinth_threads(Laby l){
 
     printf("avant le lancement de la recursivite\n");
     pthread_create(&(global_args->threads[0]), NULL, (void*)rec_find_thread,NULL);
+    //while(*(global_args->fini) == 0)print_sols();
     printf("apres le lancement de la recursivite\n");
 
     for(int i = 0 ; i < NB_THREAD ; ++i)
-        if(global_args->threads[i] != 0)
+        if(global_args->threads[i] != 0){
             pthread_join(global_args->threads[i], NULL);
+            global_args->threads[i] = 0;
+        }
     printf("apres le join\n");
+    print_ids();
 
 
     // lire le chemin reponse dans le tableau de chemin : 
@@ -71,7 +89,7 @@ chemin solve_labyrinth_threads(Laby l){
             i = NB_THREAD; // stop boucle
         }
 
-
+    print_sols();
             
 
     // rendre l'espace utilisé
@@ -109,7 +127,8 @@ int get_first_room_for_new_thread(){
 
 void stopper_thread_et_reset_chemin(int thread_index){
     for(int i = 0 ; i < CHEMIN_LENGTH ; ++i)
-        global_args->res[thread_index][0] = (Case){UNUSED, UNUSED};
+        global_args->res[thread_index][i] = (Case){UNUSED, UNUSED};
+    global_args->threads[thread_index] = 0;
     pthread_exit(NULL);
 }
 
@@ -125,32 +144,46 @@ int getLastCaseIndex(int thread_index){
 
 
 void rec_find_thread(){
+    // print_sols();
     int thread_num = get_thread_num();
-    if(thread_num == -1)
-        printf("impossible de connaitre l'indice du thread %ld\n", pthread_self());
+    if(thread_num == -1){
+        printf("%ld:\timpossible de connaitre l'indice du thread %ld\n", pthread_self(), pthread_self());
+        sleep(10);
+        if((thread_num = get_thread_num()) == -1){
+            printf("%ld:\timpossible de connaitre l'indice apres le 2nd essai, fin de programme \n", pthread_self());
+            exit(1);
+        }
+        printf("%ld:\tresolu\n", pthread_self());
+    }
 
     int case_ind = getLastCaseIndex(thread_num);
     if(case_ind == -1)
-        printf("impossible de connaitre l'indice de la case courante du thread %ld\n", pthread_self());
+        printf("%ld:\timpossible de connaitre l'indice de la case courante du thread %ld\n", pthread_self(), pthread_self());
     if(case_ind == CHEMIN_LENGTH)
-        printf("Dans le thread %ld, il ne semble pas y avoir de case courante\n", pthread_self());
-    printf("I'm thread %ld\t located on slot c: %d | l: %d", pthread_self(), global_args->res[thread_num][case_ind].col, global_args->res[thread_num][case_ind].line);
-    fflush(stdout);
+        printf("%ld:\tDans le thread %ld, il ne semble pas y avoir de case courante\n", pthread_self(), pthread_self());
+    int actual_line = global_args->res[thread_num][case_ind].line;
+    int acutal_col = global_args->res[thread_num][case_ind].col;
 
+    printf("%ld:\tlocated on slot c: %d | l: %d", pthread_self(), acutal_col, actual_line);
+    fflush(stdout);
+    printf("%ld:\taaaa\n", pthread_self());
     if(*(global_args->fini)){ // chemin trouvé par un autre thread
-        printf("je m'arrete car la solution est trouvee, fini = 1\n");
+        printf("%ld:\tje m'arrete car la solution est trouvee, fini = 1\n", pthread_self());
         stopper_thread_et_reset_chemin(thread_num);
     }
+    printf("%ld:\tbbbbb\n", pthread_self());
     //continue here 
     if(cases_egales((global_args->res[thread_num][case_ind]), (global_args->end))){ // le thread actuel a trouvé la bonne réponse
-        printf("je m'arrete car je suis sur la case reponse\n");
+        printf("%ld:\tje m'arrete car je suis sur la case reponse\n", pthread_self());
         *(global_args->fini) = 1; // communiquer aux autres threads qu'il faut qu'ils s'arretent
         pthread_exit(NULL); // stopper le thread reponse ici
     }   
 
-    
+    printf("%ld:\tcccc\n", pthread_self());
     // marquer la case comme visitée : 
-    global_args->l->m[global_args->res[thread_num][case_ind].col][global_args->res[thread_num][case_ind].line] = VISITE;
+    global_args->l->m[acutal_col][actual_line] = VISITE;
+        printf("%ld:\tdddd\n", pthread_self());
+
     /*
     // ajouter la case dans le chemin du thread actuel
     ajouter_au_dernier_voisin(t->res[thread_num], *(t->current));
@@ -159,17 +192,16 @@ void rec_find_thread(){
     // regarder dans les 4 directions
 
     int up = 0, left = 0, right = 0, down = 0, nb_direction = 0;
-    if(global_args->res[thread_num][case_ind].line-1 >= 0                       && !Case_in_chemin(global_args->res[thread_num][case_ind].col, global_args->res[thread_num][case_ind].line-1, global_args->res[thread_num])     && global_args->l->m[global_args->res[thread_num][case_ind].col][global_args->res[thread_num][case_ind].line-1] != MUR  && global_args->l->m[global_args->res[thread_num][case_ind].col][global_args->res[thread_num][case_ind].line-1] !=  VISITE) up = 1;
-    if(global_args->res[thread_num][case_ind].col - 1 >= 0                      && !Case_in_chemin(global_args->res[thread_num][case_ind].col-1, global_args->res[thread_num][case_ind].line, global_args->res[thread_num])     && global_args->l->m[global_args->res[thread_num][case_ind].col-1][global_args->res[thread_num][case_ind].line] != MUR  && global_args->l->m[global_args->res[thread_num][case_ind].col-1][global_args->res[thread_num][case_ind].line] !=  VISITE) left = 1;  
-    if(global_args->res[thread_num][case_ind].line+1 < global_args->l->cols     && !Case_in_chemin(global_args->res[thread_num][case_ind].col, global_args->res[thread_num][case_ind].line+1, global_args->res[thread_num])     && global_args->l->m[global_args->res[thread_num][case_ind].col][global_args->res[thread_num][case_ind].line+1] != MUR  && global_args->l->m[global_args->res[thread_num][case_ind].col][global_args->res[thread_num][case_ind].line+1] !=  VISITE) down = 1;
-    if(global_args->res[thread_num][case_ind].col+1 < global_args->l->lignes    && !Case_in_chemin(global_args->res[thread_num][case_ind].col+1, global_args->res[thread_num][case_ind].line, global_args->res[thread_num])     && global_args->l->m[global_args->res[thread_num][case_ind].col+1][global_args->res[thread_num][case_ind].line] != MUR  && global_args->l->m[global_args->res[thread_num][case_ind].col+1][global_args->res[thread_num][case_ind].line] !=  VISITE) right = 1;
+    if(actual_line-1 >= 0                       && !Case_in_chemin(acutal_col, actual_line-1, global_args->res[thread_num])     && global_args->l->m[acutal_col][actual_line-1] != MUR  && global_args->l->m[acutal_col][actual_line-1] !=  VISITE) up = 1;
+    if(acutal_col - 1 >= 0                      && !Case_in_chemin(acutal_col-1, actual_line, global_args->res[thread_num])     && global_args->l->m[acutal_col-1][actual_line] != MUR  && global_args->l->m[acutal_col-1][actual_line] !=  VISITE) left = 1;  
+    if(actual_line+1 < global_args->l->cols     && !Case_in_chemin(acutal_col, actual_line+1, global_args->res[thread_num])     && global_args->l->m[acutal_col][actual_line+1] != MUR  && global_args->l->m[acutal_col][actual_line+1] !=  VISITE) down = 1;
+    if(acutal_col+1 < global_args->l->lignes    && !Case_in_chemin(acutal_col+1, actual_line, global_args->res[thread_num])     && global_args->l->m[acutal_col+1][actual_line] != MUR  && global_args->l->m[acutal_col+1][actual_line] !=  VISITE) right = 1;
 
     // ================ 
-    if(left)        printf("\t%d directions possible left", ++nb_direction);
-    if(up)          printf("\t%d directions possible up", ++nb_direction);
-    if(right)       printf("\t%d directions possible right", ++nb_direction);
-    if(down)        printf("\t%d directions possible down", ++nb_direction);
-    printf("\n");
+    if(left)        printf("%ld:\t\t%d directions possible left\n", pthread_self(), ++nb_direction);
+    if(up)          printf("%ld:\t\t%d directions possible up\n", pthread_self(), ++nb_direction);
+    if(right)       printf("%ld:\t\t%d directions possible right\n", pthread_self(), ++nb_direction);
+    if(down)        printf("%ld:\t\t%d directions possible down\n", pthread_self(), ++nb_direction);
     // ================
 
 
@@ -186,65 +218,80 @@ void rec_find_thread(){
 
     if(up){
         int nvl_place = get_first_room_for_new_thread();
-        printf("up nb_dir = %d\n", nb_direction); 
+        printf("%ld:\tup nb_dir = %d\n", pthread_self(), nb_direction); 
         nb_direction--;
         if(nb_direction == 0 || nvl_place == NB_THREAD){ // simple recusivité à lancer dans le thread actuel si une seule direction ou si le nb max de thread est atteint
-            ajouter_coordonees_au_chemin_au_dernier_voisin(global_args->res[thread_num][case_ind].col, global_args->res[thread_num][case_ind].line-1, global_args->res[thread_num]);
+            printf("%ld:\tlaunching new rec function\n", pthread_self());fflush(stdout);
+            printf("..from %d %d   to up\n", acutal_col, actual_line);
+            ajouter_coordonees_au_chemin_au_dernier_voisin(acutal_col, actual_line-1, global_args->res[thread_num]);
             rec_find_thread();
         }else{ // lancer avec un thread
-            printf("creating new thread..from %d %d   to up\n", global_args->res[thread_num][case_ind].col, global_args->res[thread_num][case_ind].line);
+            printf("%ld:\tcreating new thread\n", pthread_self()); fflush(stdout);
+            printf("..from %d %d   to up\n", acutal_col, actual_line);
             // copier le chemin parcouru avant de lancer le nouveau thread
             for(int k = 0; k < CHEMIN_LENGTH; ++k) // optimisation possible avec le check de {UNUSED,UNUSED}
                 global_args->res[nvl_place][k] = global_args->res[thread_num][k];
-            ajouter_coordonees_au_chemin_au_dernier_voisin(global_args->res[thread_num][case_ind].col, global_args->res[thread_num][case_ind].line-1, global_args->res[nvl_place]); // ajouter le nouveau chemin
+            ajouter_coordonees_au_chemin_au_dernier_voisin(acutal_col, actual_line-1, global_args->res[nvl_place]); // ajouter le nouveau chemin
             pthread_create((pthread_t*)(global_args->threads + nvl_place), NULL, (void*)rec_find_thread, NULL); // lancer le nouveau thread
         }
     }if(left){
         int nvl_place = get_first_room_for_new_thread();
-        printf("left nb_dir = %d\n", nb_direction); 
+        printf("%ld:\tleft nb_dir = %d\n", pthread_self(), nb_direction); 
         nb_direction--;
         if(nb_direction == 0 || nvl_place == NB_THREAD){ // simple recusivité à lancer dans le thread actuel si une seule direction ou si le nb max de thread est atteint
-            ajouter_coordonees_au_chemin_au_dernier_voisin(global_args->res[thread_num][case_ind].col-1, global_args->res[thread_num][case_ind].line, global_args->res[thread_num]);
+            printf("%ld:\tlaunching new rec function\n", pthread_self());fflush(stdout);
+            printf("..from %d %d   to left\n", acutal_col, actual_line);
+            ajouter_coordonees_au_chemin_au_dernier_voisin(acutal_col-1, actual_line, global_args->res[thread_num]);
             rec_find_thread();
         }else{ // lancer avec un thread
-            printf("creating new thread..from %d %d   to left\n", global_args->res[thread_num][case_ind].col, global_args->res[thread_num][case_ind].line);
+            printf("%ld:\tcreating new thread\n", pthread_self()); fflush(stdout);
+            printf("..from %d %d   to left\n", acutal_col, actual_line);
             // copier le chemin parcouru avant de lancer le nouveau thread
             for(int k = 0; k < CHEMIN_LENGTH; ++k) // optimisation possible avec le check de {UNUSED,UNUSED}
                 global_args->res[nvl_place][k] = global_args->res[thread_num][k];
-            ajouter_coordonees_au_chemin_au_dernier_voisin(global_args->res[thread_num][case_ind].col-1, global_args->res[thread_num][case_ind].line, global_args->res[nvl_place]); // ajouter le nouveau chemin
+            ajouter_coordonees_au_chemin_au_dernier_voisin(acutal_col-1, actual_line, global_args->res[nvl_place]); // ajouter le nouveau chemin
             pthread_create((pthread_t*)(global_args->threads + nvl_place), NULL, (void*)rec_find_thread, NULL); // lancer le nouveau thread
         }
     }if(down){
         int nvl_place = get_first_room_for_new_thread();
-        printf("down nb_dir = %d\n", nb_direction); 
+        printf("%ld:\tdown nb_dir = %d\n", pthread_self(), nb_direction); 
         nb_direction--;
         if(nb_direction == 0 || nvl_place == NB_THREAD){ // simple recusivité à lancer dans le thread actuel si une seule direction ou si le nb max de thread est atteint
-            ajouter_coordonees_au_chemin_au_dernier_voisin(global_args->res[thread_num][case_ind].col, global_args->res[thread_num][case_ind].line+1, global_args->res[thread_num]);
+            printf("%ld:\tlaunching new rec function\n", pthread_self());fflush(stdout);
+            printf("..from %d %d   to down\n", acutal_col, actual_line);
+            ajouter_coordonees_au_chemin_au_dernier_voisin(acutal_col, actual_line+1, global_args->res[thread_num]);
             rec_find_thread();
         }else{ // lancer avec un thread
-            printf("creating new thread..from %d %d   to down\n", global_args->res[thread_num][case_ind].col, global_args->res[thread_num][case_ind].line);
+            printf("%ld:\tcreating new thread\n", pthread_self()); fflush(stdout);
+            printf("..from %d %d   to down\n", acutal_col, actual_line);
             // copier le chemin parcouru avant de lancer le nouveau thread
             for(int k = 0; k < CHEMIN_LENGTH; ++k) // optimisation possible avec le check de {UNUSED,UNUSED}
                 global_args->res[nvl_place][k] = global_args->res[thread_num][k];
-            ajouter_coordonees_au_chemin_au_dernier_voisin(global_args->res[thread_num][case_ind].col, global_args->res[thread_num][case_ind].line+1, global_args->res[nvl_place]); // ajouter le nouveau chemin
+            ajouter_coordonees_au_chemin_au_dernier_voisin(acutal_col, actual_line+1, global_args->res[nvl_place]); // ajouter le nouveau chemin
             pthread_create((pthread_t*)(global_args->threads + nvl_place), NULL, (void*)rec_find_thread, NULL); // lancer le nouveau thread
         }
     }if(right){
         int nvl_place = get_first_room_for_new_thread();
-        printf("right nb_dir = %d\n", nb_direction); 
+        printf("%ld:\tright nb_dir = %d\n", pthread_self(), nb_direction); 
         nb_direction--;
         if(nb_direction == 0 || nvl_place == NB_THREAD){ // simple recusivité à lancer dans le thread actuel si une seule direction ou si le nb max de thread est atteint
-            ajouter_coordonees_au_chemin_au_dernier_voisin(global_args->res[thread_num][case_ind].col+1, global_args->res[thread_num][case_ind].line, global_args->res[thread_num]);
+            printf("%ld:\tlaunching new rec function\n", pthread_self());fflush(stdout);
+            printf("..from %d %d   to right\n", acutal_col, actual_line);
+            ajouter_coordonees_au_chemin_au_dernier_voisin(acutal_col+1, actual_line, global_args->res[thread_num]);
             rec_find_thread();
         }else{ // lancer avec un thread
-            printf("creating new thread..from %d %d   to right\n", global_args->res[thread_num][case_ind].col, global_args->res[thread_num][case_ind].line);
+            printf("%ld:\tcreating new thread\n", pthread_self()); fflush(stdout);
+            printf("..from %d %d   to right\n", acutal_col, actual_line);
             // copier le chemin parcouru avant de lancer le nouveau thread
             for(int k = 0; k < CHEMIN_LENGTH; ++k) // optimisation possible avec le check de {UNUSED,UNUSED}
                 global_args->res[nvl_place][k] = global_args->res[thread_num][k];
-            ajouter_coordonees_au_chemin_au_dernier_voisin(global_args->res[thread_num][case_ind].col+1, global_args->res[thread_num][case_ind].line, global_args->res[nvl_place]); // ajouter le nouveau chemin
+            ajouter_coordonees_au_chemin_au_dernier_voisin(acutal_col+1, actual_line, global_args->res[nvl_place]); // ajouter le nouveau chemin
             pthread_create((pthread_t*)(global_args->threads + nvl_place), NULL, (void*)rec_find_thread, NULL); // lancer le nouveau thread
         }
     }
+
+    // pas sur de ce point ::
+    stopper_thread_et_reset_chemin(thread_num);
 }
 
 

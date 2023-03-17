@@ -14,7 +14,7 @@ CC = gcc
 EXE = main
 
 # compilation flages (CFLAGS) and links edition (LDFLAGS)
-CFLAGS += -Wall 
+CFLAGS += -Wall -g
 LDFLAGS = #-pg to create a library
 
 # principal rule : make the executable file

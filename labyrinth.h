@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include <unistd.h>
 
 #define UNUSED (-1)
 #define MUR 0
@@ -16,7 +17,7 @@
 #define DROITE (-3333)
 #define BAS (-4444)
 
-#define CHEMIN_LENGTH (500)
+#define CHEMIN_LENGTH (50)
 
 
 typedef struct{
