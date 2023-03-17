@@ -173,7 +173,7 @@ void rec_find_thread(){
         nb_direction++;
 
     printf("\tI have %d directions possible\n", nb_direction);
-    nb_direction = 0;
+
 
 
     // ================
@@ -194,8 +194,8 @@ void rec_find_thread(){
     if(up){
         int nvl_place = get_first_room_for_new_thread();
         printf("up nb_dir = %d\n", nb_direction); 
-        nb_direction++;
-        if(nb_direction == 1 || nvl_place == NB_THREAD){ // simple recusivité à lancer dans le thread actuel si une seule direction ou si le nb max de thread est atteint
+        nb_direction--;
+        if(nb_direction == 0 || nvl_place == NB_THREAD){ // simple recusivité à lancer dans le thread actuel si une seule direction ou si le nb max de thread est atteint
             ajouter_coordonees_au_chemin_au_dernier_voisin(global_args->res[thread_num][case_ind].col, global_args->res[thread_num][case_ind].line-1, global_args->res[thread_num]);
             rec_find_thread();
         }else{ // lancer avec un thread
@@ -208,9 +208,9 @@ void rec_find_thread(){
         }
     }if(left){
         int nvl_place = get_first_room_for_new_thread();
-        printf("up nb_dir = %d\n", nb_direction); 
-        nb_direction++;
-        if(nb_direction == 1 || nvl_place == NB_THREAD){ // simple recusivité à lancer dans le thread actuel si une seule direction ou si le nb max de thread est atteint
+        printf("left nb_dir = %d\n", nb_direction); 
+        nb_direction--;
+        if(nb_direction == 0 || nvl_place == NB_THREAD){ // simple recusivité à lancer dans le thread actuel si une seule direction ou si le nb max de thread est atteint
             ajouter_coordonees_au_chemin_au_dernier_voisin(global_args->res[thread_num][case_ind].col-1, global_args->res[thread_num][case_ind].line, global_args->res[thread_num]);
             rec_find_thread();
         }else{ // lancer avec un thread
@@ -223,9 +223,9 @@ void rec_find_thread(){
         }
     }if(down){
         int nvl_place = get_first_room_for_new_thread();
-        printf("up nb_dir = %d\n", nb_direction); 
-        nb_direction++;
-        if(nb_direction == 1 || nvl_place == NB_THREAD){ // simple recusivité à lancer dans le thread actuel si une seule direction ou si le nb max de thread est atteint
+        printf("down nb_dir = %d\n", nb_direction); 
+        nb_direction--;
+        if(nb_direction == 0 || nvl_place == NB_THREAD){ // simple recusivité à lancer dans le thread actuel si une seule direction ou si le nb max de thread est atteint
             ajouter_coordonees_au_chemin_au_dernier_voisin(global_args->res[thread_num][case_ind].col, global_args->res[thread_num][case_ind].line+1, global_args->res[thread_num]);
             rec_find_thread();
         }else{ // lancer avec un thread
@@ -238,9 +238,9 @@ void rec_find_thread(){
         }
     }if(right){
         int nvl_place = get_first_room_for_new_thread();
-        printf("up nb_dir = %d\n", nb_direction); 
-        nb_direction++;
-        if(nb_direction == 1 || nvl_place == NB_THREAD){ // simple recusivité à lancer dans le thread actuel si une seule direction ou si le nb max de thread est atteint
+        printf("right nb_dir = %d\n", nb_direction); 
+        nb_direction--;
+        if(nb_direction == 0 || nvl_place == NB_THREAD){ // simple recusivité à lancer dans le thread actuel si une seule direction ou si le nb max de thread est atteint
             ajouter_coordonees_au_chemin_au_dernier_voisin(global_args->res[thread_num][case_ind].col+1, global_args->res[thread_num][case_ind].line, global_args->res[thread_num]);
             rec_find_thread();
         }else{ // lancer avec un thread
