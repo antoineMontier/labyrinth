@@ -5,14 +5,14 @@ Thread_args * global_args;
 chemin solve_labyrinth_threads(Laby l){
     // trouvons le depart
     Case start = (Case){UNUSED, UNUSED};
-    for(int i=0; i< l.lignes; i++)
-        for(int j=0; j< l.cols; j++)
+    for(int i=0; i< l.cols; i++)
+        for(int j=0; j< l.lignes; j++)
             if(l.m[i][j] == ENTREE){
                 start.col = i;
                 start.line = j;
                 //arret des boucles
-                i = l.lignes;
-                j = l.cols;
+                i = l.cols;
+                j = l.lignes;
             }
 
     // trouvons l'arivee
@@ -23,9 +23,11 @@ chemin solve_labyrinth_threads(Laby l){
                 end.col = i;
                 end.line = j;
                 //arret des boucles
-                i = l.lignes;
-                j = l.cols;
+                i = l.cols;
+                j = l.lignes;
             }
+
+    printf("start: c: %d ; l: %d\n", start.col, start.line);
 
     if(cases_egales(start, (Case){-1, -1}) || cases_egales(end, (Case){-1, -1})){
         printf("Impossible de trouver l'entree ou la sortie\n");
@@ -132,8 +134,8 @@ void rec_find_thread(){
         printf("impossible de connaitre l'indice de la case courante du thread %ld\n", pthread_self());
     if(case_ind == CHEMIN_LENGTH)
         printf("Dans le thread %ld, il ne semble pas y avoir de case courante\n", pthread_self());
-    printf("I'm thread %ld\t located on slot c: %d | l: %d\tmax_threads_reached ? %d", pthread_self(), global_args->res[thread_num][case_ind].col, global_args->res[thread_num][case_ind].line, 0);
-    // fflush(stdout);
+    printf("I'm thread %ld\t located on slot c: %d | l: %d", pthread_self(), global_args->res[thread_num][case_ind].col, global_args->res[thread_num][case_ind].line);
+    fflush(stdout);
 
     if(*(global_args->fini)){ // chemin trouvé par un autre thread
         printf("je m'arrete car la solution est trouvee, fini = 1\n");
@@ -146,10 +148,10 @@ void rec_find_thread(){
         pthread_exit(NULL); // stopper le thread reponse ici
     }   
 
-    /*
+    
     // marquer la case comme visitée : 
-    t->l->m[t->current->col][t->current->line] = VISITE;
-
+    global_args->l->m[global_args->res[thread_num][case_ind].col][global_args->res[thread_num][case_ind].line] = VISITE;
+    /*
     // ajouter la case dans le chemin du thread actuel
     ajouter_au_dernier_voisin(t->res[thread_num], *(t->current));
     */
@@ -162,20 +164,12 @@ void rec_find_thread(){
     if(global_args->res[thread_num][case_ind].line+1 < global_args->l->cols     && !Case_in_chemin(global_args->res[thread_num][case_ind].col, global_args->res[thread_num][case_ind].line+1, global_args->res[thread_num])     && global_args->l->m[global_args->res[thread_num][case_ind].col][global_args->res[thread_num][case_ind].line+1] != MUR  && global_args->l->m[global_args->res[thread_num][case_ind].col][global_args->res[thread_num][case_ind].line+1] !=  VISITE) down = 1;
     if(global_args->res[thread_num][case_ind].col+1 < global_args->l->lignes    && !Case_in_chemin(global_args->res[thread_num][case_ind].col+1, global_args->res[thread_num][case_ind].line, global_args->res[thread_num])     && global_args->l->m[global_args->res[thread_num][case_ind].col+1][global_args->res[thread_num][case_ind].line] != MUR  && global_args->l->m[global_args->res[thread_num][case_ind].col+1][global_args->res[thread_num][case_ind].line] !=  VISITE) right = 1;
 
-    // ================ a supprimer 
-    if(left)
-        nb_direction++;
-    if(up)
-        nb_direction++;
-    if(right)
-        nb_direction++;
-    if(left)
-        nb_direction++;
-
-    printf("\tI have %d directions possible\n", nb_direction);
-
-
-
+    // ================ 
+    if(left)        printf("\t%d directions possible left", ++nb_direction);
+    if(up)          printf("\t%d directions possible up", ++nb_direction);
+    if(right)       printf("\t%d directions possible right", ++nb_direction);
+    if(down)        printf("\t%d directions possible down", ++nb_direction);
+    printf("\n");
     // ================
 
 
@@ -187,7 +181,6 @@ void rec_find_thread(){
         pthread_exit(NULL); // arreter le thread ici
     }
     */
-
 
 
 
