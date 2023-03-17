@@ -31,34 +31,28 @@ chemin solve_labyrinth_threads(Laby l){
     }
 
     // lancer la recursivite avec un thread !!!
-    Thread_args args;
-    args.l = &l;
-    args.pere = pthread_self();
-    args.res = malloc(NB_THREAD*sizeof(chemin));
-    for(int i = 0 ; i < NB_THREAD ; ++i)
-        args.res[i] = malloc(CHEMIN_LENGTH*sizeof(Case));
-    for(int i = 0 ; i < NB_THREAD ; ++i)
-        for(int j = 0 ; j < CHEMIN_LENGTH ; ++j)
-            args.res[i][j] = (Case){UNUSED, UNUSED};
-
-    args.assoc = malloc(NB_THREAD*sizeof(Thread_chemin));
-    for(int i = 0 ; i < NB_THREAD ; ++i){
-        args.assoc[i].id = 0; // pas de threads encore
-        args.assoc[i].path = args.res[i];
+    global_args = malloc(sizeof(Thread_args));
+    global_args->l = &l;
+    global_args->end = end;
+    global_args->fini = malloc(sizeof(int));
+    *(global_args->fini) = 0;
+    global_args->res = malloc(NB_THREAD*sizeof(chemin));
+    for(int i = 0 ; i < NB_THREAD ; i++){
+        global_args->res[i] = malloc(CHEMIN_LENGTH*sizeof(chemin));
+        for(int j = 0 ; j < CHEMIN_LENGTH ; j++)
+            global_args->res[i][j] = (Case){UNUSED, UNUSED};
     }
-    args.assoc[0].id = args.pere; // enregistrer le pere
-    args.end = &end;
-    args.current = &start;
-    args.tids = malloc(NB_THREAD*sizeof(pthread_t));
-    args.fini = malloc(sizeof(int));
-    *args.fini = 0;
+    global_args->threads = malloc(NB_THREAD*sizeof(pthread_t));
+    for(int i = 0 ; i < NB_THREAD ; i++)
+        global_args->threads[i] = 0;
+
     printf("avant le lancement de la recursivite\n");
-    pthread_create(&(args.assoc[0].id), NULL, (void*)rec_find_thread,(void*)&args);
+    pthread_create(&(global_args->threads[0]), NULL, (void*)rec_find_thread,NULL);
     printf("apres le lancement de la recursivite\n");
 
     for(int i = 0 ; i < NB_THREAD ; ++i)
-        if(args.assoc[i].id != 0)
-            pthread_join(args.assoc[i].id, NULL);
+        if(global_args->threads[i] != 0)
+            pthread_join(global_args->threads[i], NULL);
     printf("apres le join\n");
 
 
@@ -66,10 +60,10 @@ chemin solve_labyrinth_threads(Laby l){
 
     chemin reponse_finale = malloc(CHEMIN_LENGTH * sizeof(Case));
     for(int i = 0 ; i < NB_THREAD ; ++i)
-        if(args.res[i][0].col != UNUSED && args.res[i][0].line != UNUSED){ // only 1 
+        if(global_args->res[i][0].col != UNUSED && global_args->res[i][0].line != UNUSED){ // only 1 
             for(int j = 0 ; j < CHEMIN_LENGTH ; ++j)
-                reponse_finale[j] = args.res[i][j];
-            i = NB_THREAD;
+                reponse_finale[j] = global_args->res[i][j];
+            i = NB_THREAD; // stop boucle
         }
 
 
@@ -77,9 +71,11 @@ chemin solve_labyrinth_threads(Laby l){
 
     // rendre l'espace utilisé
     for(int i = 0 ; i < NB_THREAD ; ++i)
-        free(args.res[i]);
-    free(args.assoc);
-    free(args.res);
+        free(global_args->res[i]);
+    free(global_args->threads);
+    free(global_args->res);
+    free(global_args->fini);
+    free(global_args);
 
 
     
@@ -92,46 +88,48 @@ chemin solve_labyrinth_threads(Laby l){
     return reponse_finale;
 }
 
-int get_indice(Thread_args t){
+int get_thread_num(){
     for(int i = 0 ; i < NB_THREAD ; ++i)
-        if(t.assoc->id == pthread_self())
+        if(global_args->threads[i] == pthread_self())
             return i;
     return -1;
 }
 
-int get_free_indice(Thread_args t) {
-    for (int i = 0; i < NB_THREAD; ++i) {
-        if (t.assoc[i].id == 0) {
-            return i;
-        }
-    }
-    printf("no available slot for new thread in 'int get_free_indice(Thread_args t)'\n");
-    return -1;
+void stopper_thread_et_reset_chemin(int thread_index){
+    for(int i = 0 ; i < CHEMIN_LENGTH ; ++i)
+        global_args->res[thread_index][0] = (Case){UNUSED, UNUSED};
+    pthread_exit(NULL);
+}
+
+int getLastCaseIndex(int thread_index){
+    if(cases_egales(global_args->res[thread_index][0], (Case){UNUSED, UNUSED}))
+        return -1;
+    for(int i = 1 ; i < CHEMIN_LENGTH ; ++i)
+        if(cases_egales(global_args->res[thread_index][i], (Case){UNUSED, UNUSED}))
+            return i-1;
+    return CHEMIN_LENGTH;
 }
 
 
-int max_threads_reached(Thread_args t){
-    for(int i = 0 ; i < NB_THREAD ; ++i)
-        if(t.tids[i] == 0)
-            return 0;
-    return 1;
-}
 
+void rec_find_thread(){
+    int thread_num = get_thread_num();
+    if(thread_num == -1)
+        printf("impossible de connaitre l'indice du thread %ld\n", pthread_self());
 
-void* rec_find_thread(void* th_args){
-    Thread_args* t = (Thread_args*)th_args;
-    int thread_num = get_indice(*t);
-    printf("I'm thread %ld\t located on slot c: %d | l: %d\tmax_threads_reached ? %d", pthread_self(), t->current->col, t->current->line, max_threads_reached(*t));
-    fflush(stdout);
+    int case_ind = getLastCaseIndex(thread_num);
+    if(case_ind == -1)
+        printf("impossible de connaitre l'indice de la case courante du thread %ld\n", pthread_self());
+    if(case_ind == CHEMIN_LENGTH)
+        printf("Dans le thread %ld, il ne semble pas y avoir de case courante\n", pthread_self());
+    // printf("I'm thread %ld\t located on slot c: %d | l: %d\tmax_threads_reached ? %d", pthread_self(), t->current->col, t->current->line, max_threads_reached(*t));
+    // fflush(stdout);
 
-    if(*t->fini){ // chemin trouvé par un autre thread
+    if(*(global_args->fini)){ // chemin trouvé par un autre thread
         printf("je m'arrete car la solution est trouvee, fini = 1\n");
-        // supprimer le chemin fait par le thread en marquant les cases comme inutilisees
-        for(int i = 0 ; i < CHEMIN_LENGTH ; ++i)
-            t->res[thread_num][0] = (Case){UNUSED, UNUSED};
-        pthread_exit(NULL); // stopper le thread ici
+        stopper_thread_et_reset_chemin(thread_num);
     }
-
+    //continue here 
     if(cases_egales(*(t->current), *(t->end))){ // le thread actuel a trouvé la bonne réponse
         printf("je m'arrete car je suis sur la case reponse\n");
 
