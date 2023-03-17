@@ -99,13 +99,16 @@ int get_indice(Thread_args t){
     return -1;
 }
 
-int get_free_indice(Thread_args t){
-    for(int i = 0 ; i < NB_THREAD ; ++i)
-        if(t.assoc->id == 0)
+int get_free_indice(Thread_args t) {
+    for (int i = 0; i < NB_THREAD; ++i) {
+        if (t.assoc[i].id == 0) {
             return i;
-    printf("pas de place disponible pour un nv thread 'int get_free_indice(Thread_args t)'\n");
+        }
+    }
+    printf("no available slot for new thread in 'int get_free_indice(Thread_args t)'\n");
     return -1;
 }
+
 
 int max_threads_reached(Thread_args t){
     for(int i = 0 ; i < NB_THREAD ; ++i)
