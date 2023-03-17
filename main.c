@@ -9,8 +9,10 @@ int main(){
     chemin ans = solve_labyrinth_threads(l);
     printf("before print_chemin\n");
     print_chemin(ans);
-    //if(check_solution(l, ans))
-    //    printf("Solution OK\n");
+    if(check_solution(l, ans))
+        printf("Solution OK\n");
+    else
+        printf("===============================================================\n");
     print_solution(l, ans);
     printf("before free\n");
     free(ans);
