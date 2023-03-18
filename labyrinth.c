@@ -85,7 +85,7 @@ chemin solve_labyrinth_threads(Laby l){
 
     chemin reponse_finale = malloc(CHEMIN_LENGTH * sizeof(Case));
     for(int i = 0 ; i < NB_THREAD ; ++i)
-        if(global_args->res[i][1].col != UNUSED && global_args->res[i][1].line != UNUSED){ // only 1 
+        if(cases_egales(global_args->res[i][getLastCaseIndex(i)], end)) { // only 1 
             for(int j = 0 ; j < CHEMIN_LENGTH ; ++j)
                 reponse_finale[j] = global_args->res[i][j];
             i = NB_THREAD; // stop boucle
@@ -175,7 +175,9 @@ void rec_find_thread(){
     int acutal_col = global_args->res[thread_num][case_ind].col;
 
     //printf("%ld:\tlocated on slot c: %d | l: %d\t\t", pthread_self(), acutal_col, actual_line);
+    pthread_mutex_lock(&print_mutex);
     print_ids();
+    pthread_mutex_unlock(&print_mutex);
     // printf("%ld:\taaaa\n", pthread_self());
     if(*(global_args->fini)){ // chemin trouvé par un autre thread
         printf("%ld:\tje m'arrete car la solution est trouvee, fini = 1\n", pthread_self());
@@ -310,6 +312,11 @@ void rec_find_thread(){
             printf("%ld:\t just created thread n°%ld On slot %d\n", pthread_self(), global_args->threads[nvl_place], nvl_place);
             pthread_mutex_unlock(&mutex);
         }
+    }
+
+    if(*(global_args->fini)){ // chemin trouvé par un autre thread
+        printf("%ld:\tje m'arrete car la solution est trouvee, fini = 1\n", pthread_self());
+        stopper_thread_et_reset_chemin(thread_num);
     }
 
     // pas sur de ce point ::
