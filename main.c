@@ -12,7 +12,7 @@ int main(){
     if(check_solution(l, ans))
         printf("Solution OK\n");
     else
-        printf("===============================================================\n");
+        printf("Solution NOT ok\n");
     print_solution(l, ans);
     printf("before free\n");
     free(ans);
