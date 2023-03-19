@@ -47,8 +47,7 @@ typedef struct {
     int * fini;
 } Thread_args;
 
-pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t mem_reader_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t acces_memoire = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t print_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 
