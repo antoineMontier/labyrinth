@@ -86,7 +86,7 @@ chemin solve_labyrinth_threads(Laby l){
     printf("apres le lancement de la recursivite\n");
 
     for(int i = 0 ; i < NB_THREAD ; ++i)
-        if(global_args->threads[i] != 0){
+        if(!(*(global_args->fini)) && global_args->threads[i] != 0){
             pthread_join(global_args->threads[i], NULL);
             global_args->threads[i] = 0;
         }
@@ -364,6 +364,9 @@ void rec_find_thread(){
     // pthread_mutex_lock(&mutex);
     // stopper_thread_et_reset_chemin(thread_num);
     // pthread_mutex_unlock(&mutex);
+    pthread_mutex_lock(&print_mutex);
+    printf("%ld\t end of function\n", pthread_self());
+    pthread_mutex_unlock(&print_mutex);
 }
 
 
