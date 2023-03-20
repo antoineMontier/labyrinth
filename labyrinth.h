@@ -47,8 +47,6 @@ typedef struct {
     int * fini;
 } Thread_args;
 
-pthread_mutex_t acces_ids = PTHREAD_MUTEX_INITIALIZER, acces_laby = PTHREAD_MUTEX_INITIALIZER, acces_out = PTHREAD_MUTEX_INITIALIZER;
-
 
 
 void print(const char * msg);
