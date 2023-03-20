@@ -107,8 +107,7 @@ chemin solve_labyrinth_threads(Laby l){
                 reponse_finale[j] = global_args->res[i][j];
             ajouter_au_dernier_voisin(reponse_finale, end); // ajouter la derniere case a la main
             i = NB_THREAD; // stop boucle
-        }
-        if(i == NB_THREAD)
+        }else if(i == NB_THREAD)
             printf("pas de chemin retenu :(\n");
     }
 
