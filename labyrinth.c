@@ -118,7 +118,7 @@ chemin solve_labyrinth_threads(Laby l){
     // pthread_mutex_lock(&acces_out);    pthread_mutex_unlock(&acces_out);
     // pthread_mutex_lock(&acces_ids);    pthread_mutex_unlock(&acces_ids);
     // pthread_mutex_lock(&acces_laby);    pthread_mutex_unlock(&acces_laby);
-    while(*(global_args->fini) == 0) printf("a");
+    while(*(global_args->fini) == 0) printf("");
     printf("============================================================================ veut join\n");
 
     for(int i = 0 ; i < NB_THREAD_TOATL ; ++i)
@@ -236,10 +236,10 @@ void copier_chemins(int from, int to){
 int nombre_ways(int col, int line){
     int count = 0;
     pthread_mutex_lock(&acces_laby);
-    if(line-1 && (global_args->l->m[col][line-1] != MUR && global_args->l->m[col][line-1] != VISITE)){ print("up OK"); ++ count;}
-    if(col-1 && (global_args->l->m[col-1][line] != MUR && global_args->l->m[col-1][line] != VISITE)){ print("left OK"); ++ count;}
-    if(line+1 && (global_args->l->m[col][line+1] != MUR && global_args->l->m[col][line+1] != VISITE)){ print("down OK"); ++ count;}
-    if(col+1 && (global_args->l->m[col+1][line] != MUR && global_args->l->m[col+1][line] != VISITE)){ print("right OK"); ++ count;}
+    if(line-1 >= 0 && (global_args->l->m[col][line-1] != MUR && global_args->l->m[col][line-1] != VISITE)){ print("up OK"); ++ count;}
+    if(col-1 >= 0 && (global_args->l->m[col-1][line] != MUR && global_args->l->m[col-1][line] != VISITE)){ print("left OK"); ++ count;}
+    if(line+1 < global_args->l->lignes && (global_args->l->m[col][line+1] != MUR && global_args->l->m[col][line+1] != VISITE)){ print("down OK"); ++ count;}
+    if(col+1 < global_args->l->cols && (global_args->l->m[col+1][line] != MUR && global_args->l->m[col+1][line] != VISITE)){ print("right OK"); ++ count;}
     pthread_mutex_unlock(&acces_laby);  
     printf("{%d ; %d} : %d directions\t\t", col, line, count);
     print("");
