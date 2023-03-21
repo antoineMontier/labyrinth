@@ -311,8 +311,9 @@ void rec_find_thread(){
 
                 int indice_libre = get_first_room_for_new_thread();
                 if(nombre_ways(cl, ln) == 0 ||  indice_libre == -1){
-                    print(">recursivite");// ==================== recursivite simple
-                    global_args->res[thread_index][case_index + 1] = (Case){cl, ln-1}; // ajouter la case suivante au vecteur
+                    print(">recursivite UP");// ==================== recursivite simple
+                    ajouter_coord_et_nettoyer_apres(cl, ln-1, global_args->res[thread_index]);
+                    //global_args->res[thread_index][case_index + 1] = (Case){cl, ln-1}; // ajouter la case suivante au vecteur
                     pthread_mutex_unlock(&acces_ids); // deverouiller l'acces memoire des que possible
                     rec_find_thread(); // lancer la recursivite
                 }else{
@@ -344,8 +345,8 @@ void rec_find_thread(){
 
                 int indice_libre = get_first_room_for_new_thread();
                 if(nombre_ways(cl, ln) == 0 ||  indice_libre == -1){                                            //========= utilisation de nombre_ays
-                    print(">recursivite");// ==================== recursivite simple
-                    global_args->res[thread_index][case_index + 1] = (Case){cl-1, ln}; // ajouter la case suivante au vecteur
+                    print(">recursivite LEFT");// ==================== recursivite simple
+                    ajouter_coord_et_nettoyer_apres(cl-1, ln, global_args->res[thread_index]);
                     pthread_mutex_unlock(&acces_ids); // deverouiller l'acces memoire des que possible
                     rec_find_thread(); // lancer la recursivite
                 }else{
@@ -377,8 +378,8 @@ void rec_find_thread(){
 
                 int indice_libre = get_first_room_for_new_thread();
                 if(nombre_ways(cl, ln) == 0 ||  indice_libre == -1){
-                    print(">recursivite");// ==================== recursivite simple
-                    global_args->res[thread_index][case_index + 1] = (Case){cl, ln+1}; // ajouter la case suivante au vecteur
+                    print(">recursivite DOWN");// ==================== recursivite simple
+                    ajouter_coord_et_nettoyer_apres(cl, ln+1, global_args->res[thread_index]);
                     pthread_mutex_unlock(&acces_ids); // deverouiller l'acces memoire des que possible
                     rec_find_thread(); // lancer la recursivite
                 }else{
@@ -411,8 +412,8 @@ void rec_find_thread(){
 
                 int indice_libre = get_first_room_for_new_thread();
                 if(nombre_ways(cl, ln) == 0 ||  indice_libre == -1){
-                    print(">recursivite");// ==================== recursivite simple
-                    global_args->res[thread_index][case_index + 1] = (Case){cl+1, ln}; // ajouter la case suivante au vecteur
+                    print(">recursivite RIGHT");// ==================== recursivite simple
+                    ajouter_coord_et_nettoyer_apres(cl+1, ln, global_args->res[thread_index]);
                     pthread_mutex_unlock(&acces_ids); // deverouiller l'acces memoire des que possible
                     rec_find_thread(); // lancer la recursivite
                 }else{
@@ -509,6 +510,19 @@ void ajouter_coordonees_au_chemin_au_dernier_voisin(int col, int line, chemin c)
             }else
                 ajouter_au_dernier_voisin(c, s);
     }
+}
+
+void ajouter_coord_et_nettoyer_apres(int col, int line, chemin c){
+    Case s = {col, line};
+    for(int i = CHEMIN_LENGTH-2; i >= 0; i--){
+        if(!(c[i].col == UNUSED && c[i].line == UNUSED) && sont_voisines(c[i], s)){// skipper toutes les cases à la fin de coordonnees{-1 ; -1} --optimisation du if possible
+            c[i+1] = s; // case ajoutee
+            for(int j = i + 2 ; j < CHEMIN_LENGTH ; ++j)
+                c[j] = (Case){UNUSED, UNUSED};
+            return;
+        }
+    }
+    // aucune case ajoutee
 }
 
 int ajouter_au_dernier_voisin(chemin c, Case a_ajouter){
