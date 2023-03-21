@@ -5,6 +5,7 @@ pthread_mutex_t acces_ids = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t acces_laby = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t acces_out = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t acces_ids_history = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t solution_trouvee = PTHREAD_MUTEX_INITIALIZER;
 
 
 
@@ -50,7 +51,7 @@ void ajouter_dans_historique(pthread_t thread_id){
     }
 }
 
-chemin solve_labyrinth_threads(Laby l){
+chemin solve_labyrinth_threads(Laby l){ /// si NB_THREAD == 1, lancer en recursif normal
     // trouvons le depart
     Case start = (Case){UNUSED, UNUSED};
     for(int i=0; i< l.cols; i++)
@@ -100,40 +101,49 @@ chemin solve_labyrinth_threads(Laby l){
     global_args->threads = malloc(NB_THREAD*sizeof(pthread_t));
     for(int i = 0 ; i < NB_THREAD ; i++)
         global_args->threads[i] = 0;
-    global_args->threads_history = malloc(NB_THREAD_TOATL * sizeof(pthread_t)); // imaginons que le nb max de threads est 5 fois le nombre max de threads simultanes
+    global_args->threads_history = malloc(NB_THREAD_TOATL * sizeof(pthread_t));
     for(int i = 0 ; i < NB_THREAD_TOATL ; i++)
         global_args->threads_history[i] = 0;
+    chemin reponse_finale = malloc(CHEMIN_LENGTH * sizeof(Case));
+    for(int i = 0; i < CHEMIN_LENGTH; i++)
+        reponse_finale[i] = (Case){UNUSED, UNUSED};
 
     pthread_mutex_unlock(&acces_out);
     pthread_mutex_unlock(&acces_ids);
     pthread_mutex_unlock(&acces_laby);
-    nombre_ways(start.col, start.line);
+    nombre_ways(start.col, start.line); // --suppr
 
+    pthread_mutex_lock(&solution_trouvee);
     printf("avant le lancement de la recursivite\n");
-    pthread_create(&(global_args->threads[0]), NULL, (void*)rec_find_thread, NULL);
-    ajouter_dans_historique(global_args->threads[0]);
-    //while(*(global_args->fini) == 0)print_sols();
-    printf("apres le lancement de la recursivite\n");
+    if(NB_THREAD <= 1)
+        rec_find(*(global_args->l), reponse_finale, start, end);
+    else{
+        pthread_create(&(global_args->threads[0]), NULL, (void*)rec_find_thread, NULL);
+        ajouter_dans_historique(global_args->threads[0]);
+        //while(*(global_args->fini) == 0)print_sols();
+        printf("apres le lancement de la recursivite\n");
 
-    // pthread_mutex_lock(&acces_out);    pthread_mutex_unlock(&acces_out);
-    // pthread_mutex_lock(&acces_ids);    pthread_mutex_unlock(&acces_ids);
-    // pthread_mutex_lock(&acces_laby);    pthread_mutex_unlock(&acces_laby);
-    while(*(global_args->fini) == 0) printf("");
-    printf("============================================================================ veut join\n");
+        // pthread_mutex_lock(&acces_out);    pthread_mutex_unlock(&acces_out);
+        // pthread_mutex_lock(&acces_ids);    pthread_mutex_unlock(&acces_ids);
+        // pthread_mutex_lock(&acces_laby);    pthread_mutex_unlock(&acces_laby);
+        //while(*(global_args->fini) == 0){ // while threads are running
 
-    for(int i = 0 ; i < NB_THREAD_TOATL ; ++i)
-        if(global_args->threads_history[i] != 0){
-            printf("joined %d thread\n", i);
-            pthread_join(global_args->threads_history[i], NULL);
-            global_args->threads_history[i] = -1;
-        }
-    printf("apres le join\n");
-    print_ids();
+        //}
+        pthread_mutex_lock(&solution_trouvee); // attendre
+        printf("============================================================================ veut join\n");
 
+        for(int i = 0 ; i < NB_THREAD_TOATL ; ++i)
+            if(global_args->threads_history[i] != 0){
+                printf("joined %d thread\n", i);
+                pthread_join(global_args->threads_history[i], NULL);
+                global_args->threads_history[i] = -1;
+            }
+        printf("apres le join\n");
+        print_ids();
+    }
 
     // lire le chemin reponse dans le tableau de chemin : 
 
-    chemin reponse_finale = malloc(CHEMIN_LENGTH * sizeof(Case));
     for(int i = 0 ; i < NB_THREAD ; ++i){
         if(cases_egales(global_args->res[i][getLastCaseIndex(i)], end)) { // chemin directement trouvé 
             for(int j = 0 ; j < CHEMIN_LENGTH ; ++j)
@@ -257,6 +267,7 @@ int nombre_ways(int col, int line){
 
 
 void rec_find_thread(){
+    
     print_ids();
     // ================ ARRET : FINI = TRUE =================
     if(*(global_args->fini)) {pthread_exit(NULL); print("stop car fini = 1");}
@@ -277,18 +288,14 @@ void rec_find_thread(){
         pthread_mutex_lock(&acces_ids); // lock ici pour attendre que tout le mode ecrive dans sa memoire associee et eviter les segfault
         *global_args->fini = 1;
         pthread_mutex_unlock(&acces_ids);
+        pthread_mutex_unlock(&solution_trouvee);
         pthread_exit(NULL);
     }
 
     print_ids();
 
-                            // ========== CASE VISITEE =================================
-                            // marquer_la_case_visitee(cl, ln); // mutexs geres dans la fonction
-
     // ============== CHECK DIRECTIONS =========================
     int directions_explorees = 0; 
-
-
 
     if(*(global_args->fini)) {pthread_exit(NULL); print("stop car fini = 1");}
 
@@ -469,8 +476,8 @@ void print_solution(Laby l, chemin c){
     print_labyrinth(l);
 
     // retirer les lettres
-    for(int i=1; i<CHEMIN_LENGTH ; ++i){
-        if(c[i].col == UNUSED&& c[i].line ==UNUSED)
+    for(int i=1; i < CHEMIN_LENGTH - 1 ; ++i){
+        if(c[i].col == UNUSED && c[i].line ==UNUSED)
             break;
         else
             l.m[c[i].col][c[i].line] = WAY;
