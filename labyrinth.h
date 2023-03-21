@@ -50,7 +50,7 @@ typedef struct {
 } Thread_args;
 
 
-
+int nombre_ways(int col, int line);
 void print(const char * msg);
 Laby creer_labyrinth(int cols, int lines);
 int check_solution(Laby, chemin);
