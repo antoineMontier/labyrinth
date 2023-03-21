@@ -11,6 +11,7 @@
 #define VISITE (-124)
 #define END_SIGNAL (-123)
 #define NB_THREAD 8
+#define NB_THREAD_TOATL (5*NB_THREAD)
 
 #define HAUT (-1111)
 #define GAUCHE (-2222)
@@ -41,8 +42,9 @@ typedef struct {
 
 typedef struct {
     Laby*l;
-    chemin*res; // liste des chemins effectués par les threads
-    pthread_t*threads;
+    chemin*res;         // liste des chemins effectués par les threads actuels
+    pthread_t*threads;  // les des threads actuels
+    pthread_t*threads_history; // liste totale de tous les threads ayant existes
     Case end;
     int * fini;
 } Thread_args;

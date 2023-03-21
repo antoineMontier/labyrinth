@@ -4,6 +4,8 @@ Thread_args * global_args;
 pthread_mutex_t acces_ids = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t acces_laby = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t acces_out = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t acces_ids_history = PTHREAD_MUTEX_INITIALIZER;
+
 
 
 void print_ids(){
@@ -28,6 +30,24 @@ int getLastCaseIndex(int thread_index){
         if(cases_egales(global_args->res[thread_index][i], (Case){UNUSED, UNUSED}))
             return i-1;
     return CHEMIN_LENGTH;
+}
+
+void ajouter_dans_historique(pthread_t thread_id){
+    pthread_mutex_lock(&acces_ids_history);
+    for(int i = 0 ; i < NB_THREAD_TOATL ; ++i){
+        if(global_args->threads_history[i] == thread_id){
+            pthread_mutex_unlock(&acces_ids_history);
+            return; // deja present
+        }if(global_args->threads_history[i] == 0){
+            global_args->threads_history[i] = thread_id;
+            pthread_mutex_unlock(&acces_ids_history);
+            return;
+        }
+        if(i == NB_THREAD_TOATL){
+            print("Erreur: nombre maximal de thread dans l'historique atteint, augmenter le #define NB_THREAD_TOATL");
+            exit(1);
+        }
+    }
 }
 
 chemin solve_labyrinth_threads(Laby l){
@@ -80,6 +100,9 @@ chemin solve_labyrinth_threads(Laby l){
     global_args->threads = malloc(NB_THREAD*sizeof(pthread_t));
     for(int i = 0 ; i < NB_THREAD ; i++)
         global_args->threads[i] = 0;
+    global_args->threads_history = malloc(NB_THREAD_TOATL * sizeof(pthread_t)); // imaginons que le nb max de threads est 5 fois le nombre max de threads simultanes
+    for(int i = 0 ; i < NB_THREAD_TOATL ; i++)
+        global_args->threads_history[i] = 0;
 
     pthread_mutex_unlock(&acces_out);
     pthread_mutex_unlock(&acces_ids);
@@ -87,18 +110,21 @@ chemin solve_labyrinth_threads(Laby l){
 
     printf("avant le lancement de la recursivite\n");
     pthread_create(&(global_args->threads[0]), NULL, (void*)rec_find_thread, NULL);
+    ajouter_dans_historique(global_args->threads[0]);
     //while(*(global_args->fini) == 0)print_sols();
     printf("apres le lancement de la recursivite\n");
 
     // pthread_mutex_lock(&acces_out);    pthread_mutex_unlock(&acces_out);
     // pthread_mutex_lock(&acces_ids);    pthread_mutex_unlock(&acces_ids);
     // pthread_mutex_lock(&acces_laby);    pthread_mutex_unlock(&acces_laby);
+    while(*(global_args->fini) == 0){}
+    printf("============================================================================veut join\n");
 
-
-    for(int i = 0 ; i < NB_THREAD ; ++i)
-        if(!(*(global_args->fini)) && global_args->threads[i] != 0){
-            pthread_join(global_args->threads[i], NULL);
-            global_args->threads[i] = 0;
+    for(int i = 0 ; i < NB_THREAD_TOATL ; ++i)
+        if(global_args->threads_history[i] != 0){
+            printf("joined %d thread\n", i);
+            pthread_join(global_args->threads_history[i], NULL);
+            global_args->threads_history[i] = -1;
         }
     printf("apres le join\n");
     print_ids();
@@ -178,7 +204,7 @@ void stopper_thread_et_reset_chemin(int thread_index){
 
 void print(const char * msg){
     pthread_mutex_lock(&acces_out);
-    printf("%ld:\t%s\n", pthread_self(), msg);
+    printf("%lu:\t%s\n", pthread_self(), msg);
     pthread_mutex_unlock(&acces_out);
 }
 
@@ -202,7 +228,8 @@ void copier_chemins(int from, int to){
     }if(to == from)
         return;
     for(int i = 0 ; i < CHEMIN_LENGTH ; i++)                    // --- a optimiser avec {-1 , -1}
-        global_args->res[to][i] = global_args->res[from][i];
+        if(cases_egales(global_args->res[to][i] = global_args->res[from][i], (Case){-1, -1}))
+            break;
 }
 
 int nombre_ways(int col, int line){
@@ -215,10 +242,10 @@ int nombre_ways(int col, int line){
     if(!up && !down && !right && !left) return 0;
     int count = 0;
     pthread_mutex_lock(&acces_laby);
-    if(up && global_args->l->m[col][line-1]) ++ count;
-    if(left && global_args->l->m[col-1][line]) ++ count;
-    if(down && global_args->l->m[col][line+1]) ++ count;
-    if(right && global_args->l->m[col+1][line]) ++ count;
+    if(up && (global_args->l->m[col][line-1] != MUR || global_args->l->m[col][line-1] != VISITE)) ++ count;
+    if(left && (global_args->l->m[col-1][line] != MUR || global_args->l->m[col-1][line] != VISITE)) ++ count;
+    if(down && (global_args->l->m[col][line+1] != MUR || global_args->l->m[col][line+1] != VISITE)) ++ count;
+    if(right && (global_args->l->m[col+1][line] != MUR || global_args->l->m[col+1][line] != VISITE)) ++ count;
     pthread_mutex_unlock(&acces_laby);  
 
     return count;
@@ -235,7 +262,7 @@ int nombre_ways(int col, int line){
 
 
 void rec_find_thread(){
-
+    print_ids();
     // ================ ARRET : FINI = TRUE =================
     if(*(global_args->fini)) {pthread_exit(NULL); print("stop car fini = 1");}
     // vérifier si le thread actuel est sur la case réponse
@@ -281,7 +308,7 @@ void rec_find_thread(){
             
 
                 int indice_libre = get_first_room_for_new_thread();
-                if(/*directions_explorees == 0 ||*/ indice_libre == -1){
+                if(nombre_ways(cl, ln) == 1 ||  indice_libre == -1){
                     print(">recursivite");// ==================== recursivite simple
                     global_args->res[thread_index][case_index + 1] = (Case){cl, ln-1}; // ajouter la case suivante au vecteur
                     pthread_mutex_unlock(&acces_ids); // deverouiller l'acces memoire des que possible
@@ -292,6 +319,7 @@ void rec_find_thread(){
                     global_args->res[indice_libre][case_index + 1] = (Case){cl, ln-1}; // ajouter la case suivante au vecteur
                     pthread_create(&(global_args->threads[indice_libre]), NULL, (void*)rec_find_thread, NULL);
                     pthread_mutex_unlock(&acces_ids);
+                    ajouter_dans_historique(global_args->threads[indice_libre]);
                 }
 
                 directions_explorees++;
@@ -299,7 +327,7 @@ void rec_find_thread(){
         }else pthread_mutex_unlock(&acces_laby);
     }
 
-
+    print_ids();
     if(*(global_args->fini)) {pthread_exit(NULL); print("stop car fini = 1");}
 
     if(cl-1 >= 0){ // ========================================== LEFT
@@ -313,7 +341,7 @@ void rec_find_thread(){
             
 
                 int indice_libre = get_first_room_for_new_thread();
-                if(/*directions_explorees == 0 ||*/ indice_libre == -1){
+                if(nombre_ways(cl, ln) == 1 ||  indice_libre == -1){
                     print(">recursivite");// ==================== recursivite simple
                     global_args->res[thread_index][case_index + 1] = (Case){cl-1, ln}; // ajouter la case suivante au vecteur
                     pthread_mutex_unlock(&acces_ids); // deverouiller l'acces memoire des que possible
@@ -324,6 +352,7 @@ void rec_find_thread(){
                     global_args->res[indice_libre][case_index + 1] = (Case){cl-1, ln}; // ajouter la case suivante au vecteur
                     pthread_create(&(global_args->threads[indice_libre]), NULL, (void*)rec_find_thread, NULL);
                     pthread_mutex_unlock(&acces_ids);
+                    ajouter_dans_historique(global_args->threads[indice_libre]);
                 }
 
                 directions_explorees++;
@@ -331,7 +360,7 @@ void rec_find_thread(){
         }else pthread_mutex_unlock(&acces_laby);
     }
 
-
+    print_ids();
     if(*(global_args->fini)) {pthread_exit(NULL); print("stop car fini = 1");}
 
     if(ln+1 < global_args->l->lignes){ // ========================================== DOWN
@@ -345,7 +374,7 @@ void rec_find_thread(){
             
 
                 int indice_libre = get_first_room_for_new_thread();
-                if(/*directions_explorees == 0 ||*/ indice_libre == -1){
+                if(nombre_ways(cl, ln) == 1 ||  indice_libre == -1){
                     print(">recursivite");// ==================== recursivite simple
                     global_args->res[thread_index][case_index + 1] = (Case){cl, ln+1}; // ajouter la case suivante au vecteur
                     pthread_mutex_unlock(&acces_ids); // deverouiller l'acces memoire des que possible
@@ -356,6 +385,7 @@ void rec_find_thread(){
                     global_args->res[indice_libre][case_index + 1] = (Case){cl, ln+1}; // ajouter la case suivante au vecteur
                     pthread_create(&(global_args->threads[indice_libre]), NULL, (void*)rec_find_thread, NULL);
                     pthread_mutex_unlock(&acces_ids);
+                    ajouter_dans_historique(global_args->threads[indice_libre]);
                 }
 
                 directions_explorees++;
@@ -364,7 +394,7 @@ void rec_find_thread(){
     }
 
 
-
+    print_ids();
     if(*(global_args->fini)) {pthread_exit(NULL); print("stop car fini = 1");}
 
     if(cl+1 < global_args->l->cols){ // ========================================== RIGHT
@@ -378,7 +408,7 @@ void rec_find_thread(){
             
 
                 int indice_libre = get_first_room_for_new_thread();
-                if(/*directions_explorees == 0 ||*/ indice_libre == -1){
+                if(nombre_ways(cl, ln) == 1 ||  indice_libre == -1){
                     print(">recursivite");// ==================== recursivite simple
                     global_args->res[thread_index][case_index + 1] = (Case){cl+1, ln}; // ajouter la case suivante au vecteur
                     pthread_mutex_unlock(&acces_ids); // deverouiller l'acces memoire des que possible
@@ -389,6 +419,7 @@ void rec_find_thread(){
                     global_args->res[indice_libre][case_index + 1] = (Case){cl+1, ln}; // ajouter la case suivante au vecteur
                     pthread_create(&(global_args->threads[indice_libre]), NULL, (void*)rec_find_thread, NULL);
                     pthread_mutex_unlock(&acces_ids);
+                    ajouter_dans_historique(global_args->threads[indice_libre]);
                 }
 
                 directions_explorees++;
@@ -396,8 +427,17 @@ void rec_find_thread(){
         }else pthread_mutex_unlock(&acces_laby);
     }
 
-
+    print_ids();
     // Apres les 4 ifs de fonctions recursives : 
+    if(directions_explorees == 0){
+        print("suppression du thread"); 
+        pthread_mutex_lock(&acces_ids);
+        for(int i = 0 ; i <= case_index + 1  ; ++i )
+            global_args->res[thread_index][i] = (Case){UNUSED, UNUSED};
+        global_args->threads[thread_index] = 0;
+        pthread_mutex_unlock(&acces_ids);
+        pthread_exit(NULL);
+    }
     print("fin de fonction");
 }
 
