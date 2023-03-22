@@ -292,14 +292,14 @@ void rec_find_thread(){
         pthread_exit(NULL);
     }
 
-    print_ids();
+    //print_ids();
 
     // ============== CHECK DIRECTIONS =========================
     int directions_explorees = 0; 
 
     if(*(global_args->fini)) {pthread_exit(NULL); print("stop car fini = 1");}
 
-    if(ln-1 >= 0){ // ========================================== UP -- cette direction est a optimiser (lancer directement en recursivité, ne pas verifier directions_explorees)
+    if(ln-1 >= 0){ // ========================================== UP
         pthread_mutex_lock(&acces_laby);    
         if(global_args->l->m[cl][ln-1] ==  WAY || global_args->l->m[cl][ln-1] ==  EXIT){
             global_args->l->m[cl][ln-1] = VISITE; // marquer la case comme visitee
@@ -310,9 +310,10 @@ void rec_find_thread(){
             
 
                 int indice_libre = get_first_room_for_new_thread();
-                if(nombre_ways(cl, ln) == 0 ||  indice_libre == -1){
+                if(nombre_ways(cl, ln) == 0 ||  indice_libre == -1){ /*indice_libre == -1 signifie que le nombre max de thread est atteint*/
                     print(">recursivite UP");// ==================== recursivite simple
-                    ajouter_coord_et_nettoyer_apres(cl, ln-1, global_args->res[thread_index]);
+                    if(ajouter_coord_et_nettoyer_apres(cl, ln-1, global_args->res[thread_index]) == 0)
+                        print("erreur d'ajout dans le vecteur reponse");
                     //global_args->res[thread_index][case_index + 1] = (Case){cl, ln-1}; // ajouter la case suivante au vecteur
                     pthread_mutex_unlock(&acces_ids); // deverouiller l'acces memoire des que possible
                     rec_find_thread(); // lancer la recursivite
@@ -330,7 +331,7 @@ void rec_find_thread(){
         }else pthread_mutex_unlock(&acces_laby);
     }
 
-    print_ids();
+    //print_ids();
     if(*(global_args->fini)) {pthread_exit(NULL); print("stop car fini = 1");}
 
     if(cl-1 >= 0){ // ========================================== LEFT
@@ -346,7 +347,8 @@ void rec_find_thread(){
                 int indice_libre = get_first_room_for_new_thread();
                 if(nombre_ways(cl, ln) == 0 ||  indice_libre == -1){                                            //========= utilisation de nombre_ays
                     print(">recursivite LEFT");// ==================== recursivite simple
-                    ajouter_coord_et_nettoyer_apres(cl-1, ln, global_args->res[thread_index]);
+                    if(ajouter_coord_et_nettoyer_apres(cl-1, ln, global_args->res[thread_index]) == 0)
+                        print("erreur d'ajout dans le vecteur reponse");
                     pthread_mutex_unlock(&acces_ids); // deverouiller l'acces memoire des que possible
                     rec_find_thread(); // lancer la recursivite
                 }else{
@@ -363,7 +365,7 @@ void rec_find_thread(){
         }else pthread_mutex_unlock(&acces_laby);
     }
 
-    print_ids();
+    //print_ids();
     if(*(global_args->fini)) {pthread_exit(NULL); print("stop car fini = 1");}
 
     if(ln+1 < global_args->l->lignes){ // ========================================== DOWN
@@ -379,7 +381,8 @@ void rec_find_thread(){
                 int indice_libre = get_first_room_for_new_thread();
                 if(nombre_ways(cl, ln) == 0 ||  indice_libre == -1){
                     print(">recursivite DOWN");// ==================== recursivite simple
-                    ajouter_coord_et_nettoyer_apres(cl, ln+1, global_args->res[thread_index]);
+                    if(ajouter_coord_et_nettoyer_apres(cl, ln+1, global_args->res[thread_index]) == 0)
+                        print("erreur d'ajout dans le vecteur reponse");
                     pthread_mutex_unlock(&acces_ids); // deverouiller l'acces memoire des que possible
                     rec_find_thread(); // lancer la recursivite
                 }else{
@@ -397,7 +400,7 @@ void rec_find_thread(){
     }
 
 
-    print_ids();
+    //print_ids();
     if(*(global_args->fini)) {pthread_exit(NULL); print("stop car fini = 1");}
 
     if(cl+1 < global_args->l->cols){ // ========================================== RIGHT
@@ -413,7 +416,8 @@ void rec_find_thread(){
                 int indice_libre = get_first_room_for_new_thread();
                 if(nombre_ways(cl, ln) == 0 ||  indice_libre == -1){
                     print(">recursivite RIGHT");// ==================== recursivite simple
-                    ajouter_coord_et_nettoyer_apres(cl+1, ln, global_args->res[thread_index]);
+                    if(ajouter_coord_et_nettoyer_apres(cl+1, ln, global_args->res[thread_index]) == 0)
+                        print("erreur d'ajout dans le vecteur reponse");
                     pthread_mutex_unlock(&acces_ids); // deverouiller l'acces memoire des que possible
                     rec_find_thread(); // lancer la recursivite
                 }else{
@@ -430,9 +434,14 @@ void rec_find_thread(){
         }else pthread_mutex_unlock(&acces_laby);
     }
 
-    print_ids();
-    // Apres les 4 ifs de fonctions recursives : 
-    if(directions_explorees == 0){
+    // Apres les 4 ifs de fonctions recursives :    
+    /* 
+    si cette partie est décommentée, dans chaque thread, des qu'une recursivite se trouvera dans un cul de sac, elle commandera l'arret de son propre thread.
+    Cela empeche tout backtrack mais permet de recycler les threads : un thread est fini, on le communique et l'espace est dispo des que necessaire.
+    Il faudrait donc un moyen efficace pour savoir si un thread et tous les backtracks qu'il peut creer son bloques.
+    */
+
+    /*if(directions_explorees == 0){
         print("suppression du thread"); 
         pthread_mutex_lock(&acces_ids);
         for(int i = 0 ; i <= case_index + 1  ; ++i )
@@ -441,7 +450,7 @@ void rec_find_thread(){
         pthread_mutex_unlock(&acces_ids);
         print("supprime, maintenant exit");
         pthread_exit(NULL);
-    }
+    }*/
     print("fin de fonction");
 }
 
@@ -512,17 +521,18 @@ void ajouter_coordonees_au_chemin_au_dernier_voisin(int col, int line, chemin c)
     }
 }
 
-void ajouter_coord_et_nettoyer_apres(int col, int line, chemin c){
+int ajouter_coord_et_nettoyer_apres(int col, int line, chemin c){
     Case s = {col, line};
-    for(int i = CHEMIN_LENGTH-2; i >= 0; i--){
+    for(int i = 0; i < CHEMIN_LENGTH -2 ; ++i){
         if(!(c[i].col == UNUSED && c[i].line == UNUSED) && sont_voisines(c[i], s)){// skipper toutes les cases à la fin de coordonnees{-1 ; -1} --optimisation du if possible
             c[i+1] = s; // case ajoutee
+            printf("ajoute {%d,  %d} en i=%d\n ", col, line, i);
             for(int j = i + 2 ; j < CHEMIN_LENGTH ; ++j)
                 c[j] = (Case){UNUSED, UNUSED};
-            return;
+            return 1;
         }
     }
-    // aucune case ajoutee
+    return 0;// aucune case ajoutee
 }
 
 int ajouter_au_dernier_voisin(chemin c, Case a_ajouter){
@@ -570,11 +580,11 @@ void rec_find(Laby l, chemin res, Case current, Case end){
     ajouter_coordonees_au_chemin_au_dernier_voisin(current.col, current.line, res);
 
     // verifier les 4 directions
-    if(current.line-1 >= 0 && !Case_in_chemin(current.col, current.line-1, res) && l.m[current.col][current.line-1] != MUR && l.m[current.col][current.line-1] !=  VISITE) // left
+    if(current.line-1 >= 0      && !Case_in_chemin(current.col, current.line-1, res) && l.m[current.col][current.line-1] != MUR && l.m[current.col][current.line-1] !=  VISITE) // left
         rec_find(l, res, (Case){current.col, current.line-1}, end);
-    if(current.col - 1 >= 0 && !Case_in_chemin(current.col-1, current.line, res) && l.m[current.col-1][current.line] != MUR && l.m[current.col-1][current.line] !=  VISITE) // up
+    if(current.col - 1 >= 0     && !Case_in_chemin(current.col-1, current.line, res) && l.m[current.col-1][current.line] != MUR && l.m[current.col-1][current.line] !=  VISITE) // up
         rec_find(l, res, (Case){current.col-1, current.line}, end);   
-    if(current.line+1 < l.cols && !Case_in_chemin(current.col, current.line+1, res) && l.m[current.col][current.line+1] != MUR && l.m[current.col][current.line+1] !=  VISITE) // down
+    if(current.line+1 < l.cols  && !Case_in_chemin(current.col, current.line+1, res) && l.m[current.col][current.line+1] != MUR && l.m[current.col][current.line+1] !=  VISITE) // down
         rec_find(l, res, (Case){current.col, current.line+1}, end);
     if(current.col+1 < l.lignes && !Case_in_chemin(current.col+1, current.line, res) && l.m[current.col+1][current.line] != MUR && l.m[current.col+1][current.line] !=  VISITE) // right
         rec_find(l, res, (Case){current.col+1, current.line}, end);
