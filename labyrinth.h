@@ -10,10 +10,10 @@
 #define EXIT 3
 #define VISITE (-124)
 #define END_SIGNAL (-123)
-#define NB_THREAD 8
+#define NB_THREAD 16
 #define NB_THREAD_TOATL (20*NB_THREAD) // imaginons que le nb max de threads est 20 fois le nombre max de threads simultanes
 
-#define CHEMIN_LENGTH (50)
+#define CHEMIN_LENGTH (1000)
 
 
 typedef struct{

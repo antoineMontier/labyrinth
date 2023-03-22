@@ -6,7 +6,7 @@ extern Thread_args *global_args;
 /*question : In c programming, imagine the main thread creates a son thread that also creates another son thread (linear). If the 1st son die, is it possible for the main thread to join the last son, knowing its pthread_t id ?*/
 
 int main(){
-    Laby l = creer_labyrinth(9, 9);
+    Laby l = creer_labyrinth(201, 201);
     print_labyrinth(l);
     chemin ans = solve_labyrinth_threads(l);
     printf("before print_chemin\n");
