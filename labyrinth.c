@@ -283,7 +283,7 @@ int est_dans_un_cul_de_sac(int t_id){
 
 void rec_find_thread(){
     
-    //print_ids(); // affiche les thread_t ainsi que le chemin qu'ils ont parcouru
+    print_ids(); // affiche les thread_t ainsi que le chemin qu'ils ont parcouru
     // ================ ARRET : solution trouvee =================
     if(pthread_mutex_trylock(&solution_trouvee) == 0) {pthread_mutex_unlock(&solution_trouvee); pthread_exit(NULL);}
     // vérifier si le thread actuel est sur la case réponse
@@ -308,9 +308,7 @@ void rec_find_thread(){
         pthread_mutex_unlock(&solution_trouvee); // debloquer pour signaler que la solution est trouvee
         pthread_exit(NULL);
     }
-
-    //print_ids(); // affiche pour chaque thread son identifiant et le chemin associe en utilisant un mutex de printf afin que le stdout ne soit pas melange
-
+    int besoin_de_mettre_a_jour_les_coordonnes = 0;
     // ============== CHECK DIRECTIONS ========================= Je nai commente que pour la direction UP, les 4 directions ont le meme code, elles different par les cases dans laquelle la recurtisvite / thread est lance.
     if(ln-1 >= 0){ // ========================================== UP
 
@@ -324,9 +322,11 @@ void rec_find_thread(){
                 int indice_libre = get_first_room_for_new_thread(); // retourne un indice libre. si pas d'indice libre, retourne -1
                 if(nombre_ways(cl, ln) == 0 ||  indice_libre == -1){ /*indice_libre == -1 signifie que le nombre max de thread est atteint // nombre_ways(cl, ln) == 0 est vrai si a partir de la case actuelle, il y a seulement une direction possible (on regarde par rapport a 0 car la direction actuelle ne sera pas comptee par la fonction car elle a ete marquee comme VISITEE un peu plus haut)*/
                     //print(">recursivite UP");// ==================== recursivite simple
+                    print("ajout UP");
                     ajouter_coord_et_nettoyer_apres(cl, ln-1, global_args->res[thread_index]); // nettoie toutes les cases apres celle que l'on vient d'ajouter. la case que l'on vient d'ajouter a ete ajoutee a cote d'une case voisine (selon la logique du backtrack)
                     pthread_mutex_unlock(&acces_ids); // deverouiller l'acces memoire des que possible
                     rec_find_thread(); // lancer la recursivite
+                    besoin_de_mettre_a_jour_les_coordonnes = 1;
                 }else{
                     //print(">thread");// ==================== thread 
                     copier_chemins(thread_index, indice_libre); // copier le chemin parcouru pour que le nv thread sache où il est et en cas de solution, il puisse donner le chemin entier
@@ -349,9 +349,11 @@ void rec_find_thread(){
             if(!Case_in_chemin(cl-1, ln, global_args->res[thread_index])){
                 int indice_libre = get_first_room_for_new_thread();
                 if(nombre_ways(cl, ln) == 0 ||  indice_libre == -1){
+                    print("ajout LEFT");
                     ajouter_coord_et_nettoyer_apres(cl-1, ln, global_args->res[thread_index]);
                     pthread_mutex_unlock(&acces_ids);
                     rec_find_thread();
+                    besoin_de_mettre_a_jour_les_coordonnes = 1;
                 }else{
                     copier_chemins(thread_index, indice_libre);
                     global_args->res[indice_libre][case_index + 1] = (Case){cl-1, ln};
@@ -375,9 +377,11 @@ void rec_find_thread(){
 
                 int indice_libre = get_first_room_for_new_thread();
                 if(nombre_ways(cl, ln) == 0 ||  indice_libre == -1){
+                    print("ajout DOWN");
                     ajouter_coord_et_nettoyer_apres(cl, ln+1, global_args->res[thread_index]);
                     pthread_mutex_unlock(&acces_ids);
                     rec_find_thread();
+                    besoin_de_mettre_a_jour_les_coordonnes = 1;
                 }else{
                     copier_chemins(thread_index, indice_libre);
                     global_args->res[indice_libre][case_index + 1] = (Case){cl, ln+1};
@@ -399,9 +403,11 @@ void rec_find_thread(){
             if(!Case_in_chemin(cl+1, ln, global_args->res[thread_index])){
                 int indice_libre = get_first_room_for_new_thread();
                 if(nombre_ways(cl, ln) == 0 ||  indice_libre == -1){
+                    print("ajout RIGHT");
                     ajouter_coord_et_nettoyer_apres(cl+1, ln, global_args->res[thread_index]);
                     pthread_mutex_unlock(&acces_ids);
                     rec_find_thread();
+                    besoin_de_mettre_a_jour_les_coordonnes = 1;
                 }else{
                     copier_chemins(thread_index, indice_libre);
                     global_args->res[indice_libre][case_index + 1] = (Case){cl+1, ln};
@@ -502,7 +508,7 @@ void print_chemin(chemin c){
 }
 
 
-void ajouter_coordonees_au_chemin_au_dernier_voisin(int col, int line, chemin c){
+void ajouter_coordonees_au_chemin_au_dernier_voisin(int col, int line, chemin c){// -- optimisation
     if(c[CHEMIN_LENGTH-1].col == END_SIGNAL && c[CHEMIN_LENGTH-1].line == END_SIGNAL)
         return; // end signal : solution deja trouvee
     Case s = {col, line};
@@ -518,16 +524,25 @@ void ajouter_coordonees_au_chemin_au_dernier_voisin(int col, int line, chemin c)
 }
 
 int ajouter_coord_et_nettoyer_apres(int col, int line, chemin c){
+    if(col == -1 || line == -1){
+        print("erreur dans le format de la case");
+        return 0;
+    }
     Case s = {col, line};
     for(int i = 0; i < CHEMIN_LENGTH -2 ; ++i){
-        if(!(c[i].col == UNUSED && c[i].line == UNUSED) && sont_voisines(c[i], s)){// skipper toutes les cases à la fin de coordonnees{-1 ; -1} --optimisation du if possible
-            c[i+1] = s; // case ajoutee
-            //printf("ajoute {%d,  %d} en i=%d\n ", col, line, i);
-            for(int j = i + 2 ; j < CHEMIN_LENGTH ; ++j)
-                c[j] = (Case){UNUSED, UNUSED};
-            return 1;
+        if(c[i].col != UNUSED && c[i].line != UNUSED){
+            if(sont_voisines(c[i], s) || cases_egales(c[i], s)){// skipper toutes les cases à la fin de coordonnees{-1 ; -1} --optimisation du if possible
+                c[i+1] = s; // case ajoutee
+                printf("ajoute {%d,  %d} en i=%d\n ", col, line, i);
+                for(int j = i + 2 ; j < CHEMIN_LENGTH ; ++j)
+                    c[j] = (Case){UNUSED, UNUSED};
+                return 1;
+            }
         }
     }
+    printf("echec d'ajout de la case {%d, %d}", col, line); print("");
+    print_ids();
+    exit(1);
     return 0;// aucune case ajoutee
 }
 
