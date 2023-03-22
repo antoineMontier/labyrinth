@@ -305,7 +305,7 @@ void rec_find_thread(){
     if(cases_egales((Case){cl, ln}, global_args->end)){
         pthread_mutex_lock(&acces_ids); // lock ici pour attendre que tout le mode ecrive dans sa memoire associee et eviter les segfault
         pthread_mutex_unlock(&acces_ids);
-        pthread_mutex_unlock(&solution_trouvee);
+        pthread_mutex_unlock(&solution_trouvee); // debloquer pour signaler que la solution est trouvee
         pthread_exit(NULL);
     }
 
@@ -321,8 +321,6 @@ void rec_find_thread(){
 
             pthread_mutex_lock(&acces_ids); // bloquer l'acces a la memoire des identifiants de threads ainsi que leur memoires correspondant aux chemins
             if(!Case_in_chemin(cl, ln-1, global_args->res[thread_index])){ // verifier que la case a ajouter n'est pas deja dans le chemin --optimisation ?
-            
-
                 int indice_libre = get_first_room_for_new_thread(); // retourne un indice libre. si pas d'indice libre, retourne -1
                 if(nombre_ways(cl, ln) == 0 ||  indice_libre == -1){ /*indice_libre == -1 signifie que le nombre max de thread est atteint // nombre_ways(cl, ln) == 0 est vrai si a partir de la case actuelle, il y a seulement une direction possible (on regarde par rapport a 0 car la direction actuelle ne sera pas comptee par la fonction car elle a ete marquee comme VISITEE un peu plus haut)*/
                     //print(">recursivite UP");// ==================== recursivite simple
@@ -545,7 +543,7 @@ int ajouter_au_dernier_voisin(chemin c, Case a_ajouter){
 
 
 int Case_in_chemin(int col, int line, chemin c){
-    for(int i=0; i<CHEMIN_LENGTH; i++)
+    for(int i=0; i < CHEMIN_LENGTH; i++) // --optimisation
         if(c[i].col == col && c[i].line == line)
             return 1;
     return 0;

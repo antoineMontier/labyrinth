@@ -4,7 +4,7 @@ extern Thread_args *global_args;
 
 
 /*question : In c programming, imagine the main thread creates a son thread that also creates another son thread (linear). If the 1st son die, is it possible for the main thread to join the last son, knowing its pthread_t id ?*/
-
+/*question au prof : esce que c'est un probleme si on lance le programme en thread : CAD le thread main ne participe pas a la resolution... si oui, NB_THREAD correspondrait au nombre max de threads participant a la resolution du probleme*/
 int main(){
     Laby l = creer_labyrinth(81, 81);
     //print_labyrinth(l);
