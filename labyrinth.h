@@ -10,7 +10,7 @@
 #define EXIT 3
 #define VISITE (-124)
 #define END_SIGNAL (-123)
-#define NB_THREAD 16
+#define NB_THREAD 2
 #define NB_THREAD_TOATL (20*NB_THREAD) // imaginons que le nb max de threads est 20 fois le nombre max de threads simultanes
 
 #define CHEMIN_LENGTH (2000)
@@ -41,7 +41,6 @@ typedef struct {
     pthread_t*threads;  // les des threads actuels
     pthread_t*threads_history; // liste totale de tous les threads ayant existes
     Case end;
-    int * fini;
 } Thread_args;
 
 int ajouter_coord_et_nettoyer_apres(int col, int line, chemin c);

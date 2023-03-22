@@ -92,8 +92,6 @@ chemin solve_labyrinth_threads(Laby l){
     global_args->l = &l;
     // == donner l'acces en lecture a la case sortie
     global_args->end = end;
-    // == allouer la variable partagee servant de condition d'arret aux threads
-    global_args->fini = malloc(1*sizeof(int)); *(global_args->fini) = 0;
     // == allouer le vecteur de chemins
     global_args->res = malloc(NB_THREAD*sizeof(chemin));
     for(int i = 0 ; i < NB_THREAD ; i++){
@@ -164,7 +162,6 @@ chemin solve_labyrinth_threads(Laby l){
     free(global_args->res);
     free(global_args->threads);
     free(global_args->threads_history);
-    free(global_args->fini);
     free(global_args);
 
 
@@ -304,7 +301,6 @@ void rec_find_thread(){
 
     if(cases_egales((Case){cl, ln}, global_args->end)){
         pthread_mutex_lock(&acces_ids); // lock ici pour attendre que tout le mode ecrive dans sa memoire associee et eviter les segfault
-        *global_args->fini = 1;
         pthread_mutex_unlock(&acces_ids);
         pthread_mutex_unlock(&solution_trouvee);
         pthread_exit(NULL);
@@ -314,8 +310,6 @@ void rec_find_thread(){
 
     // ============== CHECK DIRECTIONS =========================
     int directions_explorees = 0; 
-
-    if(*(global_args->fini)) {pthread_exit(NULL); print("stop car fini = 1");}
 
     if(ln-1 >= 0){ // ========================================== UP
         pthread_mutex_lock(&acces_laby);    
