@@ -132,7 +132,7 @@ chemin solve_labyrinth_threads(Laby l){
 
     // join les threads (les chemins parcourus restent en memoire)
     for(int i = 0 ; i < NB_THREAD_TOATL ; ++i)
-        if(global_args->threads_history[i] != 0){
+        if(global_args->threads_history[i] > 0){
             pthread_join(global_args->threads_history[i], NULL);
             global_args->threads_history[i] = -1;
         }
@@ -284,21 +284,24 @@ int est_dans_un_cul_de_sac(int t_id){
 void rec_find_thread(){
     
     //print_ids(); // affiche les thread_t ainsi que le chemin qu'ils ont parcouru
-    // ================ ARRET : FINI = TRUE =================
+    // ================ ARRET : solution trouvee =================
     if(pthread_mutex_trylock(&solution_trouvee) == 0) {pthread_mutex_unlock(&solution_trouvee); pthread_exit(NULL);}
     // vérifier si le thread actuel est sur la case réponse
 
-    // ================ ARRET : CASE END ====================
+    // ================ Recuperer le n° de thread, la case sur laquelle il se trouve et lrd caracteristiques de cette cas =================
     pthread_mutex_lock(&acces_ids); // ======= lock
-    int thread_index = get_thread_num();
-    int case_index = getLastCaseIndex(thread_index);
+
+    int thread_index = get_thread_num(); // n° de thread
+    int case_index = getLastCaseIndex(thread_index); // n° de case
     if(case_index >= CHEMIN_LENGTH - 2){
         print("pas assez de memoire allouee au vecteur de chemins");
         exit(1);
     }
-    int ln = global_args->res[thread_index][case_index].line, cl = global_args->res[thread_index][case_index].col;
+    int ln = global_args->res[thread_index][case_index].line, cl = global_args->res[thread_index][case_index].col; // n° de ligne et de colonne
+
     pthread_mutex_unlock(&acces_ids); // ===== unlock
 
+    // ================ ARRET : je suis sur la case end ====================
     if(cases_egales((Case){cl, ln}, global_args->end)){
         pthread_mutex_lock(&acces_ids); // lock ici pour attendre que tout le mode ecrive dans sa memoire associee et eviter les segfault
         pthread_mutex_unlock(&acces_ids);
@@ -306,68 +309,58 @@ void rec_find_thread(){
         pthread_exit(NULL);
     }
 
-    //print_ids();
+    //print_ids(); // affiche pour chaque thread son identifiant et le chemin associe en utilisant un mutex de printf afin que le stdout ne soit pas melange
 
-    // ============== CHECK DIRECTIONS =========================
-    int directions_explorees = 0; 
-
+    // ============== CHECK DIRECTIONS ========================= Je nai commente que pour la direction UP, les 4 directions ont le meme code, elles different par les cases dans laquelle la recurtisvite / thread est lance.
     if(ln-1 >= 0){ // ========================================== UP
-        pthread_mutex_lock(&acces_laby);    
-        if(global_args->l->m[cl][ln-1] ==  WAY || global_args->l->m[cl][ln-1] ==  EXIT){
-            global_args->l->m[cl][ln-1] = VISITE; // marquer la case comme visitee
-            pthread_mutex_unlock(&acces_laby);
 
-            pthread_mutex_lock(&acces_ids);
-            if(!Case_in_chemin(cl, ln-1, global_args->res[thread_index])){
+        pthread_mutex_lock(&acces_laby);       // lock le labyrinth pour ne pas se melanger avec les autres threads (exemple d'un thread qui voudrait visiter la même case en meme temps, les deux voient qulle est libre... et cest le bazar)
+        if(global_args->l->m[cl][ln-1] ==  WAY || global_args->l->m[cl][ln-1] ==  EXIT){ // verifier que c'est possible d'xplorer la case ( condition equivalente a [global_args->l->m[cl][ln-1] !=  MUR && global_args->l->m[cl][ln-1] !=  VISITE])
+            global_args->l->m[cl][ln-1] = VISITE; // marquer la case comme visitee
+            pthread_mutex_unlock(&acces_laby); // liberer lacces au labyrinth
+
+            pthread_mutex_lock(&acces_ids); // bloquer l'acces a la memoire des identifiants de threads ainsi que leur memoires correspondant aux chemins
+            if(!Case_in_chemin(cl, ln-1, global_args->res[thread_index])){ // verifier que la case a ajouter n'est pas deja dans le chemin --optimisation ?
             
 
-                int indice_libre = get_first_room_for_new_thread();
-                if(nombre_ways(cl, ln) == 0 ||  indice_libre == -1){ /*indice_libre == -1 signifie que le nombre max de thread est atteint*/
+                int indice_libre = get_first_room_for_new_thread(); // retourne un indice libre. si pas d'indice libre, retourne -1
+                if(nombre_ways(cl, ln) == 0 ||  indice_libre == -1){ /*indice_libre == -1 signifie que le nombre max de thread est atteint // nombre_ways(cl, ln) == 0 est vrai si a partir de la case actuelle, il y a seulement une direction possible (on regarde par rapport a 0 car la direction actuelle ne sera pas comptee par la fonction car elle a ete marquee comme VISITEE un peu plus haut)*/
                     //print(">recursivite UP");// ==================== recursivite simple
-                    ajouter_coord_et_nettoyer_apres(cl, ln-1, global_args->res[thread_index]);
-                    //global_args->res[thread_index][case_index + 1] = (Case){cl, ln-1}; // ajouter la case suivante au vecteur
+                    ajouter_coord_et_nettoyer_apres(cl, ln-1, global_args->res[thread_index]); // nettoie toutes les cases apres celle que l'on vient d'ajouter. la case que l'on vient d'ajouter a ete ajoutee a cote d'une case voisine (selon la logique du backtrack)
                     pthread_mutex_unlock(&acces_ids); // deverouiller l'acces memoire des que possible
                     rec_find_thread(); // lancer la recursivite
                 }else{
                     //print(">thread");// ==================== thread 
-                    copier_chemins(thread_index, indice_libre);
+                    copier_chemins(thread_index, indice_libre); // copier le chemin parcouru pour que le nv thread sache où il est et en cas de solution, il puisse donner le chemin entier
                     global_args->res[indice_libre][case_index + 1] = (Case){cl, ln-1}; // ajouter la case suivante au vecteur
-                    pthread_create(&(global_args->threads[indice_libre]), NULL, (void*)rec_find_thread, NULL);
-                    pthread_mutex_unlock(&acces_ids);
-                    ajouter_dans_historique(global_args->threads[indice_libre]);
+                    pthread_create(&(global_args->threads[indice_libre]), NULL, (void*)rec_find_thread, NULL); // lancer le thread, grace aux varaibles partagees, pas besoin d'arguments ni de valeurs de retour
+                    pthread_mutex_unlock(&acces_ids); // apres (pas avant car le lancement de thread ecrit dans la memoire la valeur du pthread_t cree) on libere l'acces memoire.
+                    ajouter_dans_historique(global_args->threads[indice_libre]); // on ajoute dans l'historique juste apres.
                 }
-
-                directions_explorees++;
-            }else pthread_mutex_unlock(&acces_ids);
-        }else pthread_mutex_unlock(&acces_laby);
+            }else pthread_mutex_unlock(&acces_ids); // debloquer l'acces memoire si on n'est pas rentre dans le if
+        }else pthread_mutex_unlock(&acces_laby); // liberer l'acces au labyrinth si on n'est pas rentre dans le if (pas de chemin possible...)
     }
 
     if(cl-1 >= 0){ // ========================================== LEFT
         pthread_mutex_lock(&acces_laby);    
         if(global_args->l->m[cl-1][ln] ==  WAY || global_args->l->m[cl-1][ln] ==  EXIT){
-            global_args->l->m[cl-1][ln] = VISITE; // marquer la case comme visitee                              //=============== marquer puis tester       BUGGG--update:fixé
+            global_args->l->m[cl-1][ln] = VISITE; // marquer la case comme visitee
             pthread_mutex_unlock(&acces_laby);
 
             pthread_mutex_lock(&acces_ids);
             if(!Case_in_chemin(cl-1, ln, global_args->res[thread_index])){
-            
-
                 int indice_libre = get_first_room_for_new_thread();
-                if(nombre_ways(cl, ln) == 0 ||  indice_libre == -1){                                            //========= utilisation de nombre_ays
-                    //print(">recursivite LEFT");// ==================== recursivite simple
+                if(nombre_ways(cl, ln) == 0 ||  indice_libre == -1){
                     ajouter_coord_et_nettoyer_apres(cl-1, ln, global_args->res[thread_index]);
-                    pthread_mutex_unlock(&acces_ids); // deverouiller l'acces memoire des que possible
-                    rec_find_thread(); // lancer la recursivite
+                    pthread_mutex_unlock(&acces_ids);
+                    rec_find_thread();
                 }else{
-                    //print(">thread");// ==================== thread 
                     copier_chemins(thread_index, indice_libre);
-                    global_args->res[indice_libre][case_index + 1] = (Case){cl-1, ln}; // ajouter la case suivante au vecteur
+                    global_args->res[indice_libre][case_index + 1] = (Case){cl-1, ln};
                     pthread_create(&(global_args->threads[indice_libre]), NULL, (void*)rec_find_thread, NULL);
                     pthread_mutex_unlock(&acces_ids);
                     ajouter_dans_historique(global_args->threads[indice_libre]);
                 }
-
-                directions_explorees++;
             }else pthread_mutex_unlock(&acces_ids);
         }else pthread_mutex_unlock(&acces_laby);
     }
@@ -375,7 +368,7 @@ void rec_find_thread(){
     if(ln+1 < global_args->l->lignes){ // ========================================== DOWN
         pthread_mutex_lock(&acces_laby);    
         if(global_args->l->m[cl][ln+1] ==  WAY || global_args->l->m[cl][ln+1] ==  EXIT){
-            global_args->l->m[cl][ln+1] = VISITE; // marquer la case comme visitee
+            global_args->l->m[cl][ln+1] = VISITE;
             pthread_mutex_unlock(&acces_laby);
 
             pthread_mutex_lock(&acces_ids);
@@ -384,20 +377,16 @@ void rec_find_thread(){
 
                 int indice_libre = get_first_room_for_new_thread();
                 if(nombre_ways(cl, ln) == 0 ||  indice_libre == -1){
-                    //print(">recursivite DOWN");// ==================== recursivite simple
                     ajouter_coord_et_nettoyer_apres(cl, ln+1, global_args->res[thread_index]);
-                    pthread_mutex_unlock(&acces_ids); // deverouiller l'acces memoire des que possible
-                    rec_find_thread(); // lancer la recursivite
+                    pthread_mutex_unlock(&acces_ids);
+                    rec_find_thread();
                 }else{
-                    //print(">thread");// ==================== thread 
                     copier_chemins(thread_index, indice_libre);
-                    global_args->res[indice_libre][case_index + 1] = (Case){cl, ln+1}; // ajouter la case suivante au vecteur
+                    global_args->res[indice_libre][case_index + 1] = (Case){cl, ln+1};
                     pthread_create(&(global_args->threads[indice_libre]), NULL, (void*)rec_find_thread, NULL);
                     pthread_mutex_unlock(&acces_ids);
                     ajouter_dans_historique(global_args->threads[indice_libre]);
                 }
-
-                directions_explorees++;
             }else pthread_mutex_unlock(&acces_ids);
         }else pthread_mutex_unlock(&acces_laby);
     }
@@ -406,29 +395,22 @@ void rec_find_thread(){
     if(cl+1 < global_args->l->cols){ // ========================================== RIGHT
         pthread_mutex_lock(&acces_laby);    
         if(global_args->l->m[cl+1][ln] ==  WAY || global_args->l->m[cl+1][ln] ==  EXIT){
-            global_args->l->m[cl+1][ln] = VISITE; // marquer la case comme visitee
+            global_args->l->m[cl+1][ln] = VISITE;
             pthread_mutex_unlock(&acces_laby);
-
             pthread_mutex_lock(&acces_ids);
             if(!Case_in_chemin(cl+1, ln, global_args->res[thread_index])){
-            
-
                 int indice_libre = get_first_room_for_new_thread();
                 if(nombre_ways(cl, ln) == 0 ||  indice_libre == -1){
-                    //print(">recursivite RIGHT");// ==================== recursivite simple
                     ajouter_coord_et_nettoyer_apres(cl+1, ln, global_args->res[thread_index]);
-                    pthread_mutex_unlock(&acces_ids); // deverouiller l'acces memoire des que possible
-                    rec_find_thread(); // lancer la recursivite
+                    pthread_mutex_unlock(&acces_ids);
+                    rec_find_thread();
                 }else{
-                    //print(">thread");// ==================== thread 
                     copier_chemins(thread_index, indice_libre);
-                    global_args->res[indice_libre][case_index + 1] = (Case){cl+1, ln}; // ajouter la case suivante au vecteur
+                    global_args->res[indice_libre][case_index + 1] = (Case){cl+1, ln};
                     pthread_create(&(global_args->threads[indice_libre]), NULL, (void*)rec_find_thread, NULL);
                     pthread_mutex_unlock(&acces_ids);
                     ajouter_dans_historique(global_args->threads[indice_libre]);
                 }
-
-                directions_explorees++;
             }else pthread_mutex_unlock(&acces_ids);
         }else pthread_mutex_unlock(&acces_laby);
     }
@@ -438,6 +420,8 @@ void rec_find_thread(){
     si le code en dessous est décommenté, dans chaque thread, des qu'une recursivite se trouvera dans un cul de sac, elle commandera l'arret de son propre thread.
     Cela empeche tout backtrack mais permet de recycler les threads : un thread est fini, on le communique et l'espace est dispo des que necessaire.
     Il faudrait donc un moyen efficace pour savoir si un thread est dans un cul de sac et qu'il ne peut plus creer de backtracks (encerclé par des cases VISITE || MUR).
+
+    A l'origine, directions_explorees correspond au nombre de directions dans lesquels une recursivite ou un thread a ete lance (if dans lequels la fonction est rentree, entre 0 et 3) 
     */
 
     /*if(directions_explorees == 0){
@@ -453,19 +437,13 @@ void rec_find_thread(){
 
 
     if(est_dans_un_cul_de_sac(thread_index)){
-        //print("suppression du thread"); 
         pthread_mutex_lock(&acces_ids);
         for(int i = 0 ; i <= case_index + 1  ; ++i )
             global_args->res[thread_index][i] = (Case){UNUSED, UNUSED};
         global_args->threads[thread_index] = 0;
         pthread_mutex_unlock(&acces_ids);
-        //print("supprime, maintenant exit");
         pthread_exit(NULL);
     }
-
-
-
-    //print("fin de fonction");
 }
 
 
