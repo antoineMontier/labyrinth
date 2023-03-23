@@ -13,7 +13,7 @@ void print_ids(){
     pthread_mutex_lock(&acces_out);                     //aussi lock l'acces memoire ?
     printf("\n\n=================Threads _ids :\n");
     for(int i =  0; i < NB_THREAD ; ++i){
-        printf("%p -- ", global_args->threads[i]);
+        printf("%p -- ", (void*)global_args->threads[i]);
         print_chemin(global_args->res[i]);
     }
     printf("=================\n\n");
@@ -154,7 +154,6 @@ chemin solve_labyrinth_threads(Laby l){
         }else if(i == NB_THREAD)
             printf("Erreur: pas de chemin retenu\n");
     }
-            
 
     // rendre l'espace utilisé
     for(int i = 0 ; i < NB_THREAD ; ++i)
@@ -166,7 +165,7 @@ chemin solve_labyrinth_threads(Laby l){
 
 
     
-    // remettre les cases depart & arrivee (peuvent etre remplacees par des cases VISITE lors de la recursivite)
+    // remettre les cases depart & arrivee (peuvent etre malencontreusement remplacees par des cases VISITE lors de la recursivite)
     l.m[start.col][start.line] = ENTREE; l.m[end.col][end.line] = EXIT;
 
     // a voir si necessaire
@@ -211,7 +210,7 @@ void stopper_thread_et_reset_chemin(int thread_index){
 
 void print(const char * msg){
     pthread_mutex_lock(&acces_out);
-    printf("%p:\t%s\n", pthread_self(), msg);
+    printf("%p:\t%s\n", (void*)pthread_self(), msg);
     pthread_mutex_unlock(&acces_out);
 }
 
@@ -225,7 +224,7 @@ void marquer_la_case_visitee(int col, int line){
     pthread_mutex_unlock(&acces_ids); // ===== unlock
 }
 
-/// @brief utiliser avec acces_ids -- optimisation possible
+/// @brief utiliser avec acces_ids
 /// @param from 
 /// @param to 
 void copier_chemins(int from, int to){
@@ -234,7 +233,7 @@ void copier_chemins(int from, int to){
         exit(1);
     }if(to == from)
         return;
-    for(int i = 0 ; i < CHEMIN_LENGTH ; i++)                    // --- a optimiser avec {-1 , -1}
+    for(int i = 0 ; i < CHEMIN_LENGTH; i++)
         if(cases_egales(global_args->res[to][i] = global_args->res[from][i], (Case){-1, -1}))
             break;
 }
@@ -308,7 +307,6 @@ void rec_find_thread(){
         pthread_mutex_unlock(&solution_trouvee); // debloquer pour signaler que la solution est trouvee
         pthread_exit(NULL);
     }
-    int besoin_de_mettre_a_jour_les_coordonnes = 0;
     // ============== CHECK DIRECTIONS ========================= Je nai commente que pour la direction UP, les 4 directions ont le meme code, elles different par les cases dans laquelle la recurtisvite / thread est lance.
     if(ln-1 >= 0){ // ========================================== UP
 
@@ -326,7 +324,6 @@ void rec_find_thread(){
                     ajouter_coord_et_nettoyer_apres(cl, ln-1, global_args->res[thread_index]); // nettoie toutes les cases apres celle que l'on vient d'ajouter. la case que l'on vient d'ajouter a ete ajoutee a cote d'une case voisine (selon la logique du backtrack)
                     pthread_mutex_unlock(&acces_ids); // deverouiller l'acces memoire des que possible
                     rec_find_thread(); // lancer la recursivite
-                    besoin_de_mettre_a_jour_les_coordonnes = 1;
                 }else{
                     //print(">thread");// ==================== thread 
                     copier_chemins(thread_index, indice_libre); // copier le chemin parcouru pour que le nv thread sache où il est et en cas de solution, il puisse donner le chemin entier
@@ -353,7 +350,6 @@ void rec_find_thread(){
                     ajouter_coord_et_nettoyer_apres(cl-1, ln, global_args->res[thread_index]);
                     pthread_mutex_unlock(&acces_ids);
                     rec_find_thread();
-                    besoin_de_mettre_a_jour_les_coordonnes = 1;
                 }else{
                     copier_chemins(thread_index, indice_libre);
                     global_args->res[indice_libre][case_index + 1] = (Case){cl-1, ln};
@@ -381,7 +377,6 @@ void rec_find_thread(){
                     ajouter_coord_et_nettoyer_apres(cl, ln+1, global_args->res[thread_index]);
                     pthread_mutex_unlock(&acces_ids);
                     rec_find_thread();
-                    besoin_de_mettre_a_jour_les_coordonnes = 1;
                 }else{
                     copier_chemins(thread_index, indice_libre);
                     global_args->res[indice_libre][case_index + 1] = (Case){cl, ln+1};
@@ -407,7 +402,6 @@ void rec_find_thread(){
                     ajouter_coord_et_nettoyer_apres(cl+1, ln, global_args->res[thread_index]);
                     pthread_mutex_unlock(&acces_ids);
                     rec_find_thread();
-                    besoin_de_mettre_a_jour_les_coordonnes = 1;
                 }else{
                     copier_chemins(thread_index, indice_libre);
                     global_args->res[indice_libre][case_index + 1] = (Case){cl+1, ln};
