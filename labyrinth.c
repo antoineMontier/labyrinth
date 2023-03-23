@@ -13,7 +13,7 @@ void print_ids(){
     pthread_mutex_lock(&acces_out);                     //aussi lock l'acces memoire ?
     printf("\n\n=================Threads _ids :\n");
     for(int i =  0; i < NB_THREAD ; ++i){
-        printf("%ld -- ", global_args->threads[i]);
+        printf("%p -- ", global_args->threads[i]);
         print_chemin(global_args->res[i]);
     }
     printf("=================\n\n");
@@ -211,7 +211,7 @@ void stopper_thread_et_reset_chemin(int thread_index){
 
 void print(const char * msg){
     pthread_mutex_lock(&acces_out);
-    printf("%lu:\t%s\n", pthread_self(), msg);
+    printf("%p:\t%s\n", pthread_self(), msg);
     pthread_mutex_unlock(&acces_out);
 }
 
@@ -283,7 +283,7 @@ int est_dans_un_cul_de_sac(int t_id){
 
 void rec_find_thread(){
     
-    print_ids(); // affiche les thread_t ainsi que le chemin qu'ils ont parcouru
+    // print_ids(); // affiche les thread_t ainsi que le chemin qu'ils ont parcouru
     // ================ ARRET : solution trouvee =================
     if(pthread_mutex_trylock(&solution_trouvee) == 0) {pthread_mutex_unlock(&solution_trouvee); pthread_exit(NULL);}
     // vérifier si le thread actuel est sur la case réponse
@@ -322,7 +322,7 @@ void rec_find_thread(){
                 int indice_libre = get_first_room_for_new_thread(); // retourne un indice libre. si pas d'indice libre, retourne -1
                 if(nombre_ways(cl, ln) == 0 ||  indice_libre == -1){ /*indice_libre == -1 signifie que le nombre max de thread est atteint // nombre_ways(cl, ln) == 0 est vrai si a partir de la case actuelle, il y a seulement une direction possible (on regarde par rapport a 0 car la direction actuelle ne sera pas comptee par la fonction car elle a ete marquee comme VISITEE un peu plus haut)*/
                     //print(">recursivite UP");// ==================== recursivite simple
-                    print("ajout UP");
+                    // print("ajout UP");
                     ajouter_coord_et_nettoyer_apres(cl, ln-1, global_args->res[thread_index]); // nettoie toutes les cases apres celle que l'on vient d'ajouter. la case que l'on vient d'ajouter a ete ajoutee a cote d'une case voisine (selon la logique du backtrack)
                     pthread_mutex_unlock(&acces_ids); // deverouiller l'acces memoire des que possible
                     rec_find_thread(); // lancer la recursivite
@@ -349,7 +349,7 @@ void rec_find_thread(){
             if(!Case_in_chemin(cl-1, ln, global_args->res[thread_index])){
                 int indice_libre = get_first_room_for_new_thread();
                 if(nombre_ways(cl, ln) == 0 ||  indice_libre == -1){
-                    print("ajout LEFT");
+                    // print("ajout LEFT");
                     ajouter_coord_et_nettoyer_apres(cl-1, ln, global_args->res[thread_index]);
                     pthread_mutex_unlock(&acces_ids);
                     rec_find_thread();
@@ -377,7 +377,7 @@ void rec_find_thread(){
 
                 int indice_libre = get_first_room_for_new_thread();
                 if(nombre_ways(cl, ln) == 0 ||  indice_libre == -1){
-                    print("ajout DOWN");
+                    // print("ajout DOWN");
                     ajouter_coord_et_nettoyer_apres(cl, ln+1, global_args->res[thread_index]);
                     pthread_mutex_unlock(&acces_ids);
                     rec_find_thread();
@@ -403,7 +403,7 @@ void rec_find_thread(){
             if(!Case_in_chemin(cl+1, ln, global_args->res[thread_index])){
                 int indice_libre = get_first_room_for_new_thread();
                 if(nombre_ways(cl, ln) == 0 ||  indice_libre == -1){
-                    print("ajout RIGHT");
+                    // print("ajout RIGHT");
                     ajouter_coord_et_nettoyer_apres(cl+1, ln, global_args->res[thread_index]);
                     pthread_mutex_unlock(&acces_ids);
                     rec_find_thread();
@@ -477,7 +477,7 @@ void print_solution(Laby l, chemin c){
         if(c[i+1].col == UNUSED && c[i+1].line == UNUSED)
             break;
         else
-            l.m[c[i].col][c[i].line] = ch; // affichage du chemin avec les characteres ascii a,b->z,A,B->Z
+            l.m[c[i].col][c[i].line] = ch;//'@'; // affichage du chemin avec les characteres ascii a,b->z,A,B->Z
         ++ch;
         if(ch == 'z' + 1)
             ch = 'A';
@@ -529,11 +529,10 @@ int ajouter_coord_et_nettoyer_apres(int col, int line, chemin c){
         return 0;
     }
     Case s = {col, line};
-    for(int i = 0; i < CHEMIN_LENGTH -2 ; ++i){
+    for(int i = CHEMIN_LENGTH -2 ; i >= 0 ; --i){
         if(c[i].col != UNUSED && c[i].line != UNUSED){
             if(sont_voisines(c[i], s) || cases_egales(c[i], s)){// skipper toutes les cases à la fin de coordonnees{-1 ; -1} --optimisation du if possible
                 c[i+1] = s; // case ajoutee
-                printf("ajoute {%d,  %d} en i=%d\n ", col, line, i);
                 for(int j = i + 2 ; j < CHEMIN_LENGTH ; ++j)
                     c[j] = (Case){UNUSED, UNUSED};
                 return 1;
