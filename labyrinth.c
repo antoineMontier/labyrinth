@@ -58,14 +58,14 @@ chemin solve_labyrinth_threads(Laby l){
 
     // trouvons le depart
     Case start = (Case){UNUSED, UNUSED};
-    for(int i=0; i< l.cols; i++)
-        for(int j=0; j< l.lignes; j++)
+    for(int i=0; i< l.lignes; i++)
+        for(int j=0; j< l.cols; j++)
             if(l.m[i][j] == ENTREE){
                 start.col = i;
                 start.line = j;
                 //arret des boucles
-                i = l.cols;
-                j = l.lignes;
+                i = l.lignes;
+                j = l.cols;
             }
 
     // trouvons l'arivee
@@ -76,9 +76,9 @@ chemin solve_labyrinth_threads(Laby l){
                 end.col = i;
                 end.line = j;
                 //arret des boucles
-                i = l.cols;
-                j = l.lignes;
-            }
+                i = l.lignes;
+                j = l.cols;
+            }   
 
 
     if(cases_egales(start, (Case){-1, -1}) || cases_egales(end, (Case){-1, -1})){
