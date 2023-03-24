@@ -28,7 +28,8 @@ typedef struct{
 
 typedef Case* chemin;
 
-
+Case trouver_entree(Laby l);
+Case trouver_sortie(Laby l);
 int nombre_ways(int col, int line);
 void print(const char * msg);
 Laby creer_labyrinth(int cols, int lines);

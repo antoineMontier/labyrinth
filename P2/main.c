@@ -1,15 +1,11 @@
 #include "labyrinth.h"
 
-extern Thread_args *global_args;
-
-
 /*question : In c programming, imagine the main thread creates a son thread that also creates another son thread (linear). If the 1st son die, is it possible for the main thread to join the last son, knowing its pthread_t id ?*/
 /*plusieurs sorties : transformer la sortie qu'on vient de trouver en une entree : ENTREE > PORTE > SORTIE 2 threads s'attendent a la porte et partent chacun vers leur sortie*/
 
 
-
 int main(){
-    Laby l = creer_labyrinth(11, 11);
+    Laby l = creer_labyrinth(9, 11);
     print_labyrinth(l);
     chemin ans = solve_labyrinth_threads(l);
     printf("before print_chemin\n");

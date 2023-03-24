@@ -55,36 +55,9 @@ chemin solve_labyrinth_threads(Laby l){
     // si NB_THREAD == 1, lancer en recursif normal
     if(NB_THREAD <= 1) return solve_labyrinth(l);
 
+    Case start = trouver_entree(l);
+    Case end = trouver_sortie(l);  
 
-    // trouvons le depart
-    Case start = (Case){UNUSED, UNUSED};
-    for(int i=0; i< l.lignes; i++)
-        for(int j=0; j< l.cols; j++)
-            if(l.m[i][j] == ENTREE){
-                start.col = i;
-                start.line = j;
-                //arret des boucles
-                i = l.lignes;
-                j = l.cols;
-            }
-
-    // trouvons l'arivee
-    Case end = (Case){UNUSED, UNUSED};
-    for(int i=0; i< l.lignes; i++)
-        for(int j=0; j< l.cols; j++)
-            if(l.m[i][j] == EXIT){
-                end.col = i;
-                end.line = j;
-                //arret des boucles
-                i = l.lignes;
-                j = l.cols;
-            }   
-
-
-    if(cases_egales(start, (Case){-1, -1}) || cases_egales(end, (Case){-1, -1})){
-        printf("Impossible de trouver l'entree ou la sortie\n");
-        exit(1);
-    }
 
     // allouer la struct partagee par les threads
     global_args = malloc(sizeof(Thread_args));
@@ -266,7 +239,8 @@ int est_dans_un_cul_de_sac(int t_id){
 
 void rec_find_thread(){
     
-    // print_ids(); // affiche les thread_t ainsi que le chemin qu'ils ont parcouru
+    print_ids(); // affiche les thread_t ainsi que le chemin qu'ils ont parcouru
+    printf("aaaa\n");
     // ================ ARRET : solution trouvee =================
     if(pthread_mutex_trylock(&solution_trouvee) == 0) {pthread_mutex_unlock(&solution_trouvee); pthread_exit(NULL);}
     // vérifier si le thread actuel est sur la case réponse
@@ -283,6 +257,8 @@ void rec_find_thread(){
     int ln = global_args->res[thread_index][case_index].line, cl = global_args->res[thread_index][case_index].col; // n° de ligne et de colonne
 
     pthread_mutex_unlock(&acces_ids); // ===== unlock
+    printf("bbbbb\n");
+    print_ids();
 
     // ================ ARRET : je suis sur la case end ====================
     if(cases_egales((Case){cl, ln}, global_args->end)){
@@ -319,6 +295,8 @@ void rec_find_thread(){
             }else pthread_mutex_unlock(&acces_ids); // debloquer l'acces memoire si on n'est pas rentre dans le if
         }else pthread_mutex_unlock(&acces_laby); // liberer l'acces au labyrinth si on n'est pas rentre dans le if (pas de chemin possible...)
     }
+    printf("cccc\n");
+    print_ids();
 
     if(cl-1 >= 0){ // ========================================== LEFT
         pthread_mutex_lock(&acces_laby);    
@@ -344,6 +322,8 @@ void rec_find_thread(){
             }else pthread_mutex_unlock(&acces_ids);
         }else pthread_mutex_unlock(&acces_laby);
     }
+    printf("dddd\n");
+    print_ids();
 
     if(ln+1 < global_args->l->lignes){ // ========================================== DOWN
         pthread_mutex_lock(&acces_laby);    
@@ -372,6 +352,8 @@ void rec_find_thread(){
         }else pthread_mutex_unlock(&acces_laby);
     }
 
+    printf("eeeee\n");
+    print_ids();
 
     if(cl+1 < global_args->l->cols){ // ========================================== RIGHT
         pthread_mutex_lock(&acces_laby);    
@@ -416,16 +398,29 @@ void rec_find_thread(){
         print("supprime, maintenant exit");
         pthread_exit(NULL);
     }*/
+    printf("ffff\n");
+    print_ids();
 
 
     if(est_dans_un_cul_de_sac(thread_index)){
+        printf("gggg\n");
+        print_ids();
+
         pthread_mutex_lock(&acces_ids);
+        printf("hhhhh\n");
+        print_ids();
+
         for(int i = 0 ; i <= case_index + 1  ; ++i )
             global_args->res[thread_index][i] = (Case){UNUSED, UNUSED};
         global_args->threads[thread_index] = 0;
         pthread_mutex_unlock(&acces_ids);
+        printf("iiii\n");
+        print_ids();
+
         pthread_exit(NULL);
     }
+    printf("jjjjj\n");
+    print_ids();
 }
 
 
@@ -618,7 +613,45 @@ int sont_voisines(Case a, Case b){return (a.col == b.col && abso(a.line - b.line
 int cases_egales(Case a, Case b){return a.col == b.col && a.line == b.line;}
 void print_Case(Case s){printf("%d %d\n", s.col, s.line);}
 
+Case trouver_entree(Laby l){
+    // trouvons le depart
+    Case start = (Case){UNUSED, UNUSED};
+    for(int i=0; i< l.lignes; i++)
+        for(int j=0; j< l.cols; j++)
+            if(l.m[i][j] == ENTREE){
+                start.col = i;
+                start.line = j;
+                //arret des boucles
+                i = l.lignes;
+                j = l.cols;
+            }
 
+    if(cases_egales(start, (Case){UNUSED, UNUSED})){
+        printf("Impossible de trouver l'entree\n");
+        exit(1);
+    }
+    return start;
+}
+
+Case trouver_sortie(Laby l){
+    // trouvons l'arivee
+    Case end = (Case){UNUSED, UNUSED};
+    for(int i=0; i< l.lignes; i++)
+        for(int j=0; j< l.cols; j++)
+            if(l.m[i][j] == EXIT){
+                end.col = i;
+                end.line = j;
+                //arret des boucles
+                i = l.lignes;
+                j = l.cols;
+            }
+
+    if(cases_egales(end, (Case){UNUSED, UNUSED})){
+        printf("Impossible de trouver la sortie\n");
+        exit(1);
+    }
+    return end;
+}
 
 // ================================================================= fonctions de la P1
 
@@ -637,7 +670,6 @@ void nettoyer_chemin(chemin c){
         --ind_fin;
     }
 }
-
 
 void rec_find(Laby l, chemin res, Case current, Case end){
 
@@ -676,37 +708,11 @@ void rec_find(Laby l, chemin res, Case current, Case end){
         rec_find(l, res, (Case){current.col+1, current.line}, end);
 }
 
-
 chemin solve_labyrinth(Laby l){
-    // trouvons le depart
-    Case start = (Case){UNUSED, UNUSED};
-    for(int i=0; i< l.lignes; i++)
-        for(int j=0; j< l.cols; j++)
-            if(l.m[i][j] == ENTREE){
-                start.col = i;
-                start.line = j;
-                //arret des boucles
-                i = l.lignes;
-                j = l.cols;
-            }
 
-    // trouvons l'arivee
-    Case end = (Case){UNUSED, UNUSED};
-    for(int i=0; i< l.lignes; i++)
-        for(int j=0; j< l.cols; j++)
-            if(l.m[i][j] == EXIT){
-                end.col = i;
-                end.line = j;
-                //arret des boucles
-                i = l.lignes;
-                j = l.cols;
-            }
-
-    if(cases_egales(start, (Case){-1, -1}) || cases_egales(end, (Case){-1, -1})){
-        printf("Impossible de trouver l'entree ou la sortie\n");
-        exit(1);
-    }
-
+    Case start = trouver_entree(l);
+    Case end = trouver_sortie(l);
+    
     chemin reponse = malloc(sizeof(chemin) * CHEMIN_LENGTH);
     
     for(int i = 0; i < CHEMIN_LENGTH; i++)

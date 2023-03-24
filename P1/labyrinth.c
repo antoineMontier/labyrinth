@@ -129,35 +129,10 @@ void rec_find(Laby l, chemin res, Case current, Case end){
 }
 
 chemin solve_labyrinth(Laby l){
-    // trouvons le depart
-    Case start = (Case){UNUSED, UNUSED};
-    for(int i=0; i< l.lignes; i++)
-        for(int j=0; j< l.cols; j++)
-            if(l.m[i][j] == ENTREE){
-                start.col = i;
-                start.line = j;
-                //arret des boucles
-                i = l.lignes;
-                j = l.cols;
-            }
 
-    // trouvons l'arivee
-    Case end = (Case){UNUSED, UNUSED};
-    for(int i=0; i< l.lignes; i++)
-        for(int j=0; j< l.cols; j++)
-            if(l.m[i][j] == EXIT){
-                end.col = i;
-                end.line = j;
-                //arret des boucles
-                i = l.lignes;
-                j = l.cols;
-            }
-
-    if(cases_egales(start, (Case){-1, -1}) || cases_egales(end, (Case){-1, -1})){
-        printf("Impossible de trouver l'entree ou la sortie\n");
-        exit(1);
-    }
-
+    Case start = trouver_entree(l);
+    Case end = trouver_sortie(l);
+    
     chemin reponse = malloc(sizeof(chemin) * CHEMIN_LENGTH);
     
     for(int i = 0; i < CHEMIN_LENGTH; i++)
@@ -271,3 +246,44 @@ int abso(int x){return x < 0 ? -x : x;}
 int sont_voisines(Case a, Case b){return (a.col == b.col && abso(a.line - b.line) == 1) || (a.line == b.line && abso(a.col - b.col) == 1);}
 int cases_egales(Case a, Case b){return a.col == b.col && a.line == b.line;}
 void print_Case(Case s){printf("%d %d\n", s.col, s.line);}
+
+
+Case trouver_entree(Laby l){
+    // trouvons le depart
+    Case start = (Case){UNUSED, UNUSED};
+    for(int i=0; i< l.lignes; i++)
+        for(int j=0; j< l.cols; j++)
+            if(l.m[i][j] == ENTREE){
+                start.col = i;
+                start.line = j;
+                //arret des boucles
+                i = l.lignes;
+                j = l.cols;
+            }
+
+    if(cases_egales(start, (Case){UNUSED, UNUSED})){
+        printf("Impossible de trouver l'entree\n");
+        exit(1);
+    }
+    return start;
+}
+
+Case trouver_sortie(Laby l){
+    // trouvons l'arivee
+    Case end = (Case){UNUSED, UNUSED};
+    for(int i=0; i< l.lignes; i++)
+        for(int j=0; j< l.cols; j++)
+            if(l.m[i][j] == EXIT){
+                end.col = i;
+                end.line = j;
+                //arret des boucles
+                i = l.lignes;
+                j = l.cols;
+            }
+
+    if(cases_egales(end, (Case){UNUSED, UNUSED})){
+        printf("Impossible de trouver la sortie\n");
+        exit(1);
+    }
+    return end;
+}
