@@ -8,7 +8,7 @@
 ./main && ./main && ./main ./main && ./main && ./main ./main && ./main && ./main && ./main && ./main && ./main && ./main ./main && ./main && ./main ./main && ./main && ./main && ./main && ./main && ./main && ./main ./main && ./main && ./main ./main && ./main && ./main && ./main && ./main && ./main && ./main ./main && ./main && ./main ./main && ./main && ./main && ./main && ./main && ./main && ./main ./main && ./main && ./main ./main && ./main && ./main && ./main && ./main && ./main && ./main ./main && ./main && ./main ./main && ./main && ./main && ./main && ./main && ./main && ./main ./main && ./main && ./main ./main && ./main && ./main && ./main && ./main && ./main && ./main ./main && ./main && ./main ./main && ./main && ./main && ./main && ./main && ./main && ./main ./main && ./main && ./main ./main && ./main && ./main && ./main && ./main && ./main && ./main ./main && ./main && ./main ./main && ./main && ./main && ./main
 */
 int main(){
-    Laby l = creer_labyrinth(10, 100);
+    Laby l = creer_labyrinth(20, 50);
     //print_labyrinth(l);
     chemin ans = solve_labyrinth_threads(l);
     //printf("before print_chemin\n");
@@ -17,7 +17,7 @@ int main(){
         printf("Solution OK\n");
     else
         printf("Solution NOT ok\n");
-    print_solution(l, ans);
+    //print_solution(l, ans);
     //printf("before free\n");
     free(ans);
     free_labyrinth(&l);
