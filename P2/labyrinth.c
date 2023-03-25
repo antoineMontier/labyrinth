@@ -212,7 +212,7 @@ int nombre_ways(int col, int line){ // -- pas sur que cette fonction est vraimen
     return count;
 }
 
-
+/*
 int possibilites_de_mouvement(Case c){ // -- optimiser avec une variable temporaire // -- <= ou < ??? si oui <
     if(cases_egales(c, (Case){UNUSED, UNUSED}))
         return 0;
@@ -230,11 +230,38 @@ int possibilites_de_mouvement(Case c){ // -- optimiser avec une variable tempora
         if(global_args->l->m[c.col][c.line+1] != MUR && global_args->l->m[c.col][c.line+1] != VISITE){++count;printf("case {%d, %d} a une possibilite en bas\n", c.col, c.line);} 
     }
     if(c.col+1 < global_args->l->cols){
-        printf("\t\tRIGHT\tc.col+1 < %d\tcount = %d\t\tm[%d][%d] = %d\n", global_args->l->cols, count, c.col+1, c.line, global_args->l->m[c.col+1][c.line]);
+        printf("\t\tRIGHT\tc.col+1 < %d\tcount = %d\t\tm[%d][%d] = %d\n", global_args->l->cols,count, c.col+1, c.line, global_args->l->m[c.col+1][c.line]);
         if(global_args->l->m[c.col+1][c.line] != MUR && global_args->l->m[c.col+1][c.line] != VISITE){++count;printf("case {%d, %d} a une possibilite en droite\n", c.col, c.line);} 
     }
     return count;
+}*/
+
+
+int possibilites_de_mouvement(Case c){ // -- optimiser avec une variable temporaire // -- <= ou < ??? si oui <
+    if(cases_egales(c, (Case){UNUSED, UNUSED}))
+        return 0;
+    int count = 0;
+    if(c.col-1 >= 0){
+        printf("\t\tUP\tc.line-1 >= 0\tcount = %d\t\tm[%d][%d] = %d\n", count,c.col, c.line-1, global_args->l->m[c.col][c.line-1]);
+        if(global_args->l->m[c.line][c.col-1] != MUR && global_args->l->m[c.line][c.col-1] != VISITE){++count;printf("case {%d, %d} a une possibilite en haut\n", c.col, c.line);} 
+    }
+    if(c.line-1 >= 0){
+        printf("\t\tLEFT\tc.line-1 >= 0\tcount = %d\t\tm[%d][%d] = %d\n", count,c.line-1, c.col, global_args->l->m[c.line-1][c.col]);
+        if(global_args->l->m[c.line-1][c.col] != MUR && global_args->l->m[c.line-1][c.col] != VISITE){++count;printf("case {%d, %d} a une possibilite en gauche\n", c.col, c.line);} 
+    }
+    if(c.col+1 < global_args->l->lignes){
+        printf("\t\tDOWN\tc.col+1 < %d\tcount = %d\t\tm[%d][%d] = %d\n", global_args->l->lignes, count,c.line+1, c.col, global_args->l->m[c.line+1][c.col]);
+        if(global_args->l->m[c.line][c.col+1] != MUR && global_args->l->m[c.line][c.col+1] != VISITE){++count;printf("case {%d, %d} a une possibilite en bas\n", c.col, c.line);} 
+    }
+    if(c.line+1 < global_args->l->cols){
+        printf("\t\tRIGHT\tc.line+1 < %d\tcount = %d\t\tm[%d][%d] = %d\n", global_args->l->cols, count, c.line, c.col+1, global_args->l->m[c.line][c.col+1]);
+        if(global_args->l->m[c.line+1][c.col] != MUR && global_args->l->m[c.line+1][c.col] != VISITE){++count;printf("case {%d, %d} a une possibilite en droite\n", c.col, c.line);} 
+    }
+    return count;
 }
+
+
+
 
 int est_dans_un_cul_de_sac(int t_id){
     if(t_id == -1){
@@ -546,11 +573,11 @@ int Case_in_chemin(int col, int line, chemin c){
 void print_raw_labyrinth(Laby l){
     //print upper indexs : 
     for(int i = 0 ; i < l.cols ; i++)
-        printf("%d\t", i%10);
+        printf("%d\t\t", i%10);
     printf("|+\n");
     for(int i=0; i < l.lignes; i++){
         for(int j=0; j < l.cols; j++)
-            printf("%d\t",l.m[i][j]);
+            printf("m[%d, %d]=%d\t",i, j, l.m[i][j]);
         printf("|%d\n", i);
     }
 }
