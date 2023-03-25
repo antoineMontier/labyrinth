@@ -5,7 +5,7 @@
 
 
 int main(){
-    Laby l = creer_labyrinth(9, 11);
+    Laby l = creer_labyrinth(5, 11);
     print_labyrinth(l);
     chemin ans = solve_labyrinth_threads(l);
     printf("before print_chemin\n");

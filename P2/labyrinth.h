@@ -10,7 +10,7 @@
 #define EXIT 3
 #define VISITE (-124)
 #define END_SIGNAL (-123)
-#define NB_THREAD 5
+#define NB_THREAD 2
 #define NB_THREAD_TOATL (20*NB_THREAD) // imaginons que le nb max de threads est 20 fois le nombre max de threads simultanes
 
 #define CHEMIN_LENGTH (2000)
@@ -46,6 +46,8 @@ int possibilites_de_mouvement(Case c);
 int est_dans_un_cul_de_sac(int t_id);
 Case trouver_entree(Laby l);
 Case trouver_sortie(Laby l);
+
+void print_raw_labyrinth(Laby l);
 
 int ajouter_coord_et_nettoyer_apres(int col, int line, chemin c);
 int nombre_ways(int col, int line);
