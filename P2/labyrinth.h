@@ -42,7 +42,7 @@ void ajouter_dans_historique(pthread_t thread_id);
 int getLastCaseIndex(int thread_index);
 int get_first_room_for_new_thread();
 void copier_chemins(int from, int to);
-int possibilites_de_mouvement(Case c);
+int une_possibilites_de_mouvement(Case c);
 int est_dans_un_cul_de_sac(int t_id);
 Case trouver_entree(Laby l);
 Case trouver_sortie(Laby l);

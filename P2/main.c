@@ -5,7 +5,7 @@
 /*todo : es ce que l'historique de pids est utile ???*/
 
 int main(){
-    Laby l = creer_labyrinth(99, 9);
+    Laby l = creer_labyrinth(99, 10);
     print_labyrinth(l);
     chemin ans = solve_labyrinth_threads(l);
     printf("before print_chemin\n");

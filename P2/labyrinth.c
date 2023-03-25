@@ -188,15 +188,15 @@ int nombre_ways(int col, int line){ // -- pas sur que cette fonction est vraimen
     return count;
 }
 
-int possibilites_de_mouvement(Case c){
+int une_possibilites_de_mouvement(Case c){
     if(cases_egales(c, (Case){UNUSED, UNUSED}))
         return 0;
-    int count = 0;
-    if(c.line-1 >= 0 && global_args->l->m[c.col][c.line-1] != MUR && global_args->l->m[c.col][c.line-1] != VISITE) ++count;
-    if(c.col-1 >= 0 && global_args->l->m[c.col-1][c.line] != MUR && global_args->l->m[c.col-1][c.line] != VISITE) ++count;
-    if(c.line+1 < global_args->l->cols && global_args->l->m[c.col][c.line+1] != MUR && global_args->l->m[c.col][c.line+1] != VISITE) ++count;
-    if(c.col+1 < global_args->l->lignes && global_args->l->m[c.col+1][c.line] != MUR && global_args->l->m[c.col+1][c.line] != VISITE) ++count;
-    return count;
+    if(c.line-1 >= 0 && global_args->l->m[c.col][c.line-1] != MUR && global_args->l->m[c.col][c.line-1] != VISITE) return 1;
+    if(c.col-1 >= 0 && global_args->l->m[c.col-1][c.line] != MUR && global_args->l->m[c.col-1][c.line] != VISITE) return 1;
+    if(c.line+1 < global_args->l->cols && global_args->l->m[c.col][c.line+1] != MUR && global_args->l->m[c.col][c.line+1] != VISITE) return 1;
+    if(c.col+1 < global_args->l->lignes && global_args->l->m[c.col+1][c.line] != MUR && global_args->l->m[c.col+1][c.line] != VISITE) return 1;
+    // printf("{%d|%d} :: %d\n",c.col, c.line, count);
+    return 0;
 }
 
 int est_dans_un_cul_de_sac(int t_id){
@@ -205,14 +205,18 @@ int est_dans_un_cul_de_sac(int t_id){
         exit(1);
     }
     for(int i = 0 ;  i < CHEMIN_LENGTH && !cases_egales(global_args->res[t_id][i], (Case){UNUSED, UNUSED}) ; i++)
-        if(possibilites_de_mouvement(global_args->res[t_id][i]) != 0)
+        if(une_possibilites_de_mouvement(global_args->res[t_id][i])){
+            printf("%p\tpas de cul de sac\n", (void*)pthread_self());
             return 0; // pas de cul de sac
+        }
+    printf("%p\tcul de sac\n", (void*)pthread_self());
+    print_labyrinth(*global_args->l);
     return 1;
 }
 
 void rec_find_thread(){
     
-    // print_ids(); // affiche les thread_t ainsi que le chemin qu'ils ont parcouru
+    print_ids(); // affiche les thread_t ainsi que le chemin qu'ils ont parcouru
     // ================ ARRET : solution trouvee =================
     if(pthread_mutex_trylock(&solution_trouvee) == 0) {pthread_mutex_unlock(&solution_trouvee); pthread_exit(NULL);}
     // vérifier si le thread actuel est sur la case réponse
@@ -497,7 +501,7 @@ void print_labyrinth(Laby l){
                     printf("-");
                     break;
                 case VISITE:
-                    printf(" ");
+                    printf(".");
                     break;
                 default:
                     printf("%c", l.m[i][j]);
