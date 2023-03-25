@@ -191,23 +191,10 @@ int nombre_ways(int col, int line){ // -- pas sur que cette fonction est vraimen
 int une_possibilites_de_mouvement(Case c){
     if(cases_egales(c, (Case){UNUSED, UNUSED}))
         return 0;
-    if(c.line-1 >= 0){
-        printf("%p\t{%d %d} => recherche en LEFT\n", (void*)pthread_self(),c.col, c.line);
-        if(global_args->l->m[c.col][c.line-1] != MUR && global_args->l->m[c.col][c.line-1] != VISITE){ printf(" OK"); return 1;}
-
-    }if(c.col-1 >= 0){
-        printf("%p\t{%d %d} => recherche en UP\n", (void*)pthread_self(),c.col, c.line);
-        if(global_args->l->m[c.col-1][c.line] != MUR && global_args->l->m[c.col-1][c.line] != VISITE){ printf(" OK"); return 1;}
-
-    }if(c.line+1 < global_args->l->cols){
-        printf("%p\t{%d %d} => recherche en RIGHT\n", (void*)pthread_self(),c.col, c.line);
-        if(global_args->l->m[c.col][c.line+1] != MUR && global_args->l->m[c.col][c.line+1] != VISITE){ printf(" OK"); return 1;}
-
-    }if(c.col+1 < global_args->l->lignes){
-        printf("%p\t{%d %d} => recherche en DOWN\n", (void*)pthread_self(),c.col, c.line);
-        if(global_args->l->m[c.col+1][c.line] != MUR && global_args->l->m[c.col+1][c.line] != VISITE){ printf(" OK"); return 1;}
-
-    }// printf("{%d|%d} :: %d\n",c.col, c.line, count);
+    if(c.line-1 >= 0 && global_args->l->m[c.col][c.line-1] != MUR && global_args->l->m[c.col][c.line-1] != VISITE) return 1;
+    if(c.col-1 >= 0 && global_args->l->m[c.col-1][c.line] != MUR && global_args->l->m[c.col-1][c.line] != VISITE) return 1;
+    if(c.line+1 < global_args->l->cols && global_args->l->m[c.col][c.line+1] != MUR && global_args->l->m[c.col][c.line+1] != VISITE) return 1;
+    if(c.col+1 < global_args->l->lignes && global_args->l->m[c.col+1][c.line] != MUR && global_args->l->m[c.col+1][c.line] != VISITE) return 1;
     return 0;
 }
 
@@ -218,17 +205,17 @@ int est_dans_un_cul_de_sac(int t_id){
     }
     for(int i = 0 ;  i < CHEMIN_LENGTH && !cases_egales(global_args->res[t_id][i], (Case){UNUSED, UNUSED}) ; i++)
         if(une_possibilites_de_mouvement(global_args->res[t_id][i])){
-            printf("%p\tpas de cul de sac\n", (void*)pthread_self());
+            //printf("%p\tpas de cul de sac\n", (void*)pthread_self());
             return 0; // pas de cul de sac
         }
-    printf("%p\tcul de sac\n", (void*)pthread_self());
-    print_labyrinth(*global_args->l);
+    //printf("%p\tcul de sac\n", (void*)pthread_self());
+    //print_labyrinth(*global_args->l);
     return 1;
 }
 
 void rec_find_thread(){
     
-    print_ids(); // affiche les thread_t ainsi que le chemin qu'ils ont parcouru
+    //print_ids(); // affiche les thread_t ainsi que le chemin qu'ils ont parcouru
     // ================ ARRET : solution trouvee =================
     if(pthread_mutex_trylock(&solution_trouvee) == 0) {pthread_mutex_unlock(&solution_trouvee); pthread_exit(NULL);}
     // vérifier si le thread actuel est sur la case réponse
@@ -513,7 +500,7 @@ void print_labyrinth(Laby l){
                     printf("-");
                     break;
                 case VISITE:
-                    printf(".");
+                    printf(" ");
                     break;
                 default:
                     printf("%c", l.m[i][j]);
