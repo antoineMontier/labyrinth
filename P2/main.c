@@ -8,7 +8,7 @@
 ./main && ./main && ./main ./main && ./main && ./main ./main && ./main && ./main && ./main && ./main && ./main && ./main ./main && ./main && ./main ./main && ./main && ./main && ./main && ./main && ./main && ./main ./main && ./main && ./main ./main && ./main && ./main && ./main && ./main && ./main && ./main ./main && ./main && ./main ./main && ./main && ./main && ./main && ./main && ./main && ./main ./main && ./main && ./main ./main && ./main && ./main && ./main && ./main && ./main && ./main ./main && ./main && ./main ./main && ./main && ./main && ./main && ./main && ./main && ./main ./main && ./main && ./main ./main && ./main && ./main && ./main && ./main && ./main && ./main ./main && ./main && ./main ./main && ./main && ./main && ./main && ./main && ./main && ./main ./main && ./main && ./main ./main && ./main && ./main && ./main && ./main && ./main && ./main ./main && ./main && ./main ./main && ./main && ./main && ./main
 */
 int main(){
-    Laby l = creer_labyrinth(20, 50);
+    Laby l = creer_labyrinth(20, 100);
     //print_labyrinth(l);
     chemin ans = solve_labyrinth_threads(l);
     //printf("before print_chemin\n");

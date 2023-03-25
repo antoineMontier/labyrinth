@@ -134,8 +134,6 @@ chemin solve_labyrinth_threads(Laby l){
     return reponse_finale;
 }
 
-/// @brief avoir l'acces_ids
-/// @return l'indice correspondant au thread.
 int get_thread_num(){
     for(int i = 0 ; i < NB_THREAD ; ++i)
         if(global_args->threads[i] == pthread_self())
@@ -143,8 +141,6 @@ int get_thread_num(){
     return -1;
 }
 
-/// @brief avoir l'acces_ids
-/// @return un indice dispo
 int get_first_room_for_new_thread(){
     for(int i = 0 ; i < NB_THREAD ; ++i)
         if(global_args->threads[i] == 0)
@@ -158,9 +154,6 @@ void print(const char * msg){
     pthread_mutex_unlock(&acces_out);
 }
 
-/// @brief utiliser avec acces_ids
-/// @param from 
-/// @param to 
 void copier_chemins(int from, int to){
     if(from < 0 || from >= NB_THREAD || to < 0 || to >= NB_THREAD){
         print("Erreur : Mauvais indice de chemins dans la fonction copier_chemins");
@@ -229,17 +222,23 @@ int ajouter_coord_et_nettoyer_apres(int col, int line, chemin c){
         return 0;
     }
     Case s = {col, line};
+    if(cases_egales(c[0], CASE_NULLE)){
+        c[0] = s;
+        for(int j = 1 ; !cases_egales(c[j], CASE_NULLE) && j < CHEMIN_LENGTH ; ++j)
+            c[j] = CASE_NULLE;        
+        return 1;
+    }
     for(int i = CHEMIN_LENGTH -2 ; i >= 0 ; --i)
         if(!cases_egales(c[i], CASE_NULLE))
-            if(sont_voisines(c[i], s)){// skipper toutes les cases à la fin de coordonnees{-1 ; -1} --optimisation du if possible
+            if(sont_voisines(c[i], s)){// skipper toutes les cases de coordonnees{-1 ; -1} --optimisation du if possible
                 c[i+1] = s; // case ajoutee
-                for(int j = i + 2 ; j < CHEMIN_LENGTH ; ++j)
+                for(int j = i + 2 ; !cases_egales(c[j], CASE_NULLE) && j < CHEMIN_LENGTH ; ++j)
                     c[j] = CASE_NULLE;
                 return 1;
             }
     printf("echec d'ajout de la case {%d, %d}", col, line); print("");
     print_ids();
-    exit(1);// erreur aucune case ajoutee
+    return 0;// erreur aucune case ajoutee
 }
 
 int case_in_chemin(int col, int line, chemin c){
@@ -534,17 +533,6 @@ void print_raw_labyrinth(Laby l){
     }
 }
 
-int ajouter_au_dernier_voisin(chemin c, Case a_ajouter){
-    for(int i = CHEMIN_LENGTH-2; i >= 0; i--){
-        if(!cases_egales(c[i], CASE_NULLE) && sont_voisines(c[i], a_ajouter)){// skipper toutes les cases à la fin de coordonnees{-1 ; -1}
-            c[i+1] = a_ajouter;
-            return 1; // case ajoutee
-        }
-        if(i == 0){c[i] = a_ajouter; return 1;}
-    }
-    return 0; // aucune case ajoutee
-}
-
 void nettoyer_chemin(chemin c){
     // se placer à l'indice fin : 
     int ind_fin = CHEMIN_LENGTH-2;
@@ -585,17 +573,13 @@ void rec_find(Laby l, chemin res, Case current, Case end){
     l.m[current.col][current.line] = VISITE;
 
     //ajouter la case dans le chemin
-    ajouter_au_dernier_voisin(res, current);
+    ajouter_coord_et_nettoyer_apres(current.col, current.line, res);
 
     // verifier les 4 directions
-    if(current.line-1 >= 0      && !case_in_chemin(current.col, current.line-1, res) && l.m[current.col][current.line-1] != MUR && l.m[current.col][current.line-1] !=  VISITE) // left
-        rec_find(l, res, (Case){current.col, current.line-1}, end);
-    if(current.col - 1 >= 0     && !case_in_chemin(current.col-1, current.line, res) && l.m[current.col-1][current.line] != MUR && l.m[current.col-1][current.line] !=  VISITE) // up
-        rec_find(l, res, (Case){current.col-1, current.line}, end);   
-    if(current.line+1 < l.cols  && !case_in_chemin(current.col, current.line+1, res) && l.m[current.col][current.line+1] != MUR && l.m[current.col][current.line+1] !=  VISITE) // down
-        rec_find(l, res, (Case){current.col, current.line+1}, end);
-    if(current.col+1 < l.lignes && !case_in_chemin(current.col+1, current.line, res) && l.m[current.col+1][current.line] != MUR && l.m[current.col+1][current.line] !=  VISITE) // right
-        rec_find(l, res, (Case){current.col+1, current.line}, end);
+    if(current.line-1 >= 0      && !case_in_chemin(current.col, current.line-1, res) && l.m[current.col][current.line-1] != MUR && l.m[current.col][current.line-1] !=  VISITE) rec_find(l, res, (Case){current.col, current.line-1}, end);
+    if(current.col - 1 >= 0     && !case_in_chemin(current.col-1, current.line, res) && l.m[current.col-1][current.line] != MUR && l.m[current.col-1][current.line] !=  VISITE) rec_find(l, res, (Case){current.col-1, current.line}, end);   
+    if(current.line+1 < l.cols  && !case_in_chemin(current.col, current.line+1, res) && l.m[current.col][current.line+1] != MUR && l.m[current.col][current.line+1] !=  VISITE) rec_find(l, res, (Case){current.col, current.line+1}, end);
+    if(current.col+1 < l.lignes && !case_in_chemin(current.col+1, current.line, res) && l.m[current.col+1][current.line] != MUR && l.m[current.col+1][current.line] !=  VISITE) rec_find(l, res, (Case){current.col+1, current.line}, end);
 }
 
 chemin solve_labyrinth(Laby l){
