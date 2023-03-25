@@ -10,7 +10,7 @@ pthread_mutex_t solution_trouvee = PTHREAD_MUTEX_INITIALIZER;
 
 
 void print_ids(){
-    pthread_mutex_lock(&acces_out);                     //aussi lock l'acces memoire ?
+    pthread_mutex_lock(&acces_out);
     printf("\n\n=================Threads _ids :\n");
     for(int i =  0; i < NB_THREAD ; ++i){
         printf("%p -- ", (void*)global_args->threads[i]);
@@ -82,7 +82,7 @@ chemin solve_labyrinth_threads(Laby l){
     for(int i = 0 ; i < NB_THREAD ; i++)
         global_args->threads[i] = 0;
     // == allouer le stockage de l'historique des threads (tous les threads utilises) ; sert a s'assurer lors du join que tout le monde a bien fini
-    global_args->threads_history = malloc(NB_THREAD_TOATL * sizeof(pthread_t));
+    global_args->threads_history = malloc(NB_THREAD_TOATL * sizeof(pthread_t)); // -- utile ???
     // == initialiser pour ne pas avoir de mauvaise surprise
     for(int i = 0 ; i < NB_THREAD_TOATL ; i++)
         global_args->threads_history[i] = 0;
@@ -92,12 +92,12 @@ chemin solve_labyrinth_threads(Laby l){
     for(int i = 0; i < CHEMIN_LENGTH; i++)
         reponse_finale[i] = (Case){UNUSED, UNUSED};
 
-    // == mettre le mutex de solution trouvee a lock (pas de solution encore trouvee)
+    // == mettre le mutex de solution trouvee a lock (car pas de solution encore trouvee)
     pthread_mutex_lock(&solution_trouvee);
 
 
     pthread_create(&(global_args->threads[0]), NULL, (void*)rec_find_thread, NULL); // lancer la fonction dans un thread
-    // directement enregister le thread dans lequel la fonction a ete lancee dans l'historique
+    // directement enregister le thread dans lequel la fonction a ete lancee
     ajouter_dans_historique(global_args->threads[0]);
 
 
@@ -119,11 +119,6 @@ chemin solve_labyrinth_threads(Laby l){
             for(int j = 0 ; j < CHEMIN_LENGTH ; ++j)
                 reponse_finale[j] = global_args->res[i][j];
             i = NB_THREAD; // stop boucle
-        }else if(sont_voisines(global_args->res[i][getLastCaseIndex(i)], end)){ // chemin trouve mais il manque la derniere case
-            for(int j = 0 ; j < CHEMIN_LENGTH ; ++j)
-                reponse_finale[j] = global_args->res[i][j];
-            ajouter_au_dernier_voisin(reponse_finale, end); // ajouter la derniere case a la main
-            i = NB_THREAD; // stop boucle
         }else if(i == NB_THREAD)
             printf("Erreur: pas de chemin retenu\n");
     }
@@ -136,14 +131,8 @@ chemin solve_labyrinth_threads(Laby l){
     free(global_args->threads_history);
     free(global_args);
 
-
-    
     // remettre les cases depart & arrivee (peuvent etre malencontreusement remplacees par des cases VISITE lors de la recursivite)
     l.m[start.col][start.line] = ENTREE; l.m[end.col][end.line] = EXIT;
-
-    // a voir si necessaire
-    // nettoyer la reponse si necessaire : 
-    // if(!check_solution(l, reponse)) nettoyer_chemin(reponse);
 
     return reponse_finale;
 }
@@ -166,14 +155,11 @@ int get_first_room_for_new_thread(){
     return -1;
 }
 
-
 void print(const char * msg){
     pthread_mutex_lock(&acces_out);
     printf("%p:\t%s\n", (void*)pthread_self(), msg);
     pthread_mutex_unlock(&acces_out);
 }
-
-
 
 /// @brief utiliser avec acces_ids
 /// @param from 
@@ -194,16 +180,13 @@ int nombre_ways(int col, int line){ // -- pas sur que cette fonction est vraimen
     pthread_mutex_lock(&acces_laby);
     if(line-1 >= 0 && (global_args->l->m[col][line-1] != MUR && global_args->l->m[col][line-1] != VISITE))  ++count;
     if(col-1 >= 0 && (global_args->l->m[col-1][line] != MUR && global_args->l->m[col-1][line] != VISITE))  ++count;
-    if(line+1 < global_args->l->lignes && (global_args->l->m[col][line+1] != MUR && global_args->l->m[col][line+1] != VISITE))  ++count;
-    if(col+1 < global_args->l->cols && (global_args->l->m[col+1][line] != MUR && global_args->l->m[col+1][line] != VISITE))  ++count;
+    if(line+1 < global_args->l->cols && (global_args->l->m[col][line+1] != MUR && global_args->l->m[col][line+1] != VISITE))  ++count;
+    if(col+1 < global_args->l->lignes && (global_args->l->m[col+1][line] != MUR && global_args->l->m[col+1][line] != VISITE))  ++count;
     pthread_mutex_unlock(&acces_laby);  
     //printf("{%d ; %d} : %d directions\t\t", col, line, count);
     //print("");
     return count;
 }
-
-
-
 
 int possibilites_de_mouvement(Case c){
     if(cases_egales(c, (Case){UNUSED, UNUSED}))
@@ -213,7 +196,6 @@ int possibilites_de_mouvement(Case c){
     if(c.col-1 >= 0 && global_args->l->m[c.col-1][c.line] != MUR && global_args->l->m[c.col-1][c.line] != VISITE) ++count;
     if(c.line+1 < global_args->l->cols && global_args->l->m[c.col][c.line+1] != MUR && global_args->l->m[c.col][c.line+1] != VISITE) ++count;
     if(c.col+1 < global_args->l->lignes && global_args->l->m[c.col+1][c.line] != MUR && global_args->l->m[c.col+1][c.line] != VISITE) ++count;
-    printf("{%d ; %d} : %d directions\n", c.col, c.line, count);
     return count;
 }
 
@@ -227,8 +209,6 @@ int est_dans_un_cul_de_sac(int t_id){
             return 0; // pas de cul de sac
     return 1;
 }
-
-
 
 void rec_find_thread(){
     
@@ -390,16 +370,9 @@ void rec_find_thread(){
             global_args->res[thread_index][i] = (Case){UNUSED, UNUSED};
         global_args->threads[thread_index] = 0;
         pthread_mutex_unlock(&acces_ids);
-        print("exit car dans cul de sac");
         pthread_exit(NULL);
-    }if(pthread_mutex_trylock(&solution_trouvee) == 0){
-        pthread_mutex_unlock(&solution_trouvee);
-        print("exit car solution trouvee");
-        return;
     }
-    print("exit end of function");
 }
-
 
 void print_solution(Laby l, chemin c){
     // ajouter des lettres dans le labyrinth pour montrer le chemin pris
@@ -427,7 +400,6 @@ void print_solution(Laby l, chemin c){
         }
 }
 
-
 void print_chemin(chemin c){
     printf("[");
     for(int i = 0; i < CHEMIN_LENGTH ; i++){
@@ -437,7 +409,6 @@ void print_chemin(chemin c){
     }
     printf("]\n");
 }
-
 
 void ajouter_coordonees_au_chemin_au_dernier_voisin(int col, int line, chemin c){// -- optimisation
     if(c[CHEMIN_LENGTH-1].col == END_SIGNAL && c[CHEMIN_LENGTH-1].line == END_SIGNAL)
@@ -486,14 +457,12 @@ int ajouter_au_dernier_voisin(chemin c, Case a_ajouter){
     return 0; // aucune case ajoutee
 }
 
-
 int Case_in_chemin(int col, int line, chemin c){
     for(int i=0; i < CHEMIN_LENGTH; i++) // --optimisation
         if(c[i].col == col && c[i].line == line)
             return 1;
     return 0;
 }
-
 
 void print_raw_labyrinth(Laby l){
     //print upper indexs : 
@@ -528,7 +497,7 @@ void print_labyrinth(Laby l){
                     printf("-");
                     break;
                 case VISITE:
-                    printf("~");
+                    printf(" ");
                     break;
                 default:
                     printf("%c", l.m[i][j]);

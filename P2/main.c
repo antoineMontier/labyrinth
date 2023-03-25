@@ -2,10 +2,10 @@
 
 /*question : In c programming, imagine the main thread creates a son thread that also creates another son thread (linear). If the 1st son die, is it possible for the main thread to join the last son, knowing its pthread_t id ?*/
 /*plusieurs sorties : transformer la sortie qu'on vient de trouver en une entree : ENTREE > PORTE > SORTIE 2 threads s'attendent a la porte et partent chacun vers leur sortie*/
-
+/*todo : es ce que l'historique de pids est utile ???*/
 
 int main(){
-    Laby l = creer_labyrinth(7, 11);
+    Laby l = creer_labyrinth(99, 9);
     print_labyrinth(l);
     chemin ans = solve_labyrinth_threads(l);
     printf("before print_chemin\n");
