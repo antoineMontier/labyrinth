@@ -191,11 +191,23 @@ int nombre_ways(int col, int line){ // -- pas sur que cette fonction est vraimen
 int une_possibilites_de_mouvement(Case c){
     if(cases_egales(c, (Case){UNUSED, UNUSED}))
         return 0;
-    if(c.line-1 >= 0 && global_args->l->m[c.col][c.line-1] != MUR && global_args->l->m[c.col][c.line-1] != VISITE) return 1;
-    if(c.col-1 >= 0 && global_args->l->m[c.col-1][c.line] != MUR && global_args->l->m[c.col-1][c.line] != VISITE) return 1;
-    if(c.line+1 < global_args->l->cols && global_args->l->m[c.col][c.line+1] != MUR && global_args->l->m[c.col][c.line+1] != VISITE) return 1;
-    if(c.col+1 < global_args->l->lignes && global_args->l->m[c.col+1][c.line] != MUR && global_args->l->m[c.col+1][c.line] != VISITE) return 1;
-    // printf("{%d|%d} :: %d\n",c.col, c.line, count);
+    if(c.line-1 >= 0){
+        printf("%p\t{%d %d} => recherche en LEFT\n", (void*)pthread_self(),c.col, c.line);
+        if(global_args->l->m[c.col][c.line-1] != MUR && global_args->l->m[c.col][c.line-1] != VISITE){ printf(" OK"); return 1;}
+
+    }if(c.col-1 >= 0){
+        printf("%p\t{%d %d} => recherche en UP\n", (void*)pthread_self(),c.col, c.line);
+        if(global_args->l->m[c.col-1][c.line] != MUR && global_args->l->m[c.col-1][c.line] != VISITE){ printf(" OK"); return 1;}
+
+    }if(c.line+1 < global_args->l->cols){
+        printf("%p\t{%d %d} => recherche en RIGHT\n", (void*)pthread_self(),c.col, c.line);
+        if(global_args->l->m[c.col][c.line+1] != MUR && global_args->l->m[c.col][c.line+1] != VISITE){ printf(" OK"); return 1;}
+
+    }if(c.col+1 < global_args->l->lignes){
+        printf("%p\t{%d %d} => recherche en DOWN\n", (void*)pthread_self(),c.col, c.line);
+        if(global_args->l->m[c.col+1][c.line] != MUR && global_args->l->m[c.col+1][c.line] != VISITE){ printf(" OK"); return 1;}
+
+    }// printf("{%d|%d} :: %d\n",c.col, c.line, count);
     return 0;
 }
 
@@ -261,7 +273,7 @@ void rec_find_thread(){
                 }else{
                     //print(">thread");// ==================== thread 
                     copier_chemins(thread_index, indice_libre); // copier le chemin parcouru pour que le nv thread sache où il est et en cas de solution, il puisse donner le chemin entier
-                    global_args->res[indice_libre][case_index + 1] = (Case){cl, ln-1}; // ajouter la case suivante au vecteur
+                    ajouter_coord_et_nettoyer_apres(cl, ln-1, global_args->res[indice_libre]); // ajouter la case suivante au vecteur de la meme maniere que dans la fonction recursive
                     pthread_create(&(global_args->threads[indice_libre]), NULL, (void*)rec_find_thread, NULL); // lancer le thread, grace aux varaibles partagees, pas besoin d'arguments ni de valeurs de retour
                     pthread_mutex_unlock(&acces_ids); // apres (pas avant car le lancement de thread ecrit dans la memoire la valeur du pthread_t cree) on libere l'acces memoire.
                     ajouter_dans_historique(global_args->threads[indice_libre]); // on ajoute dans l'historique juste apres.
@@ -286,7 +298,7 @@ void rec_find_thread(){
                     rec_find_thread();
                 }else{
                     copier_chemins(thread_index, indice_libre);
-                    global_args->res[indice_libre][case_index + 1] = (Case){cl-1, ln};
+                    ajouter_coord_et_nettoyer_apres(cl-1, ln, global_args->res[indice_libre]);
                     pthread_create(&(global_args->threads[indice_libre]), NULL, (void*)rec_find_thread, NULL);
                     pthread_mutex_unlock(&acces_ids);
                     ajouter_dans_historique(global_args->threads[indice_libre]);
@@ -313,7 +325,7 @@ void rec_find_thread(){
                     rec_find_thread();
                 }else{
                     copier_chemins(thread_index, indice_libre);
-                    global_args->res[indice_libre][case_index + 1] = (Case){cl, ln+1};
+                    ajouter_coord_et_nettoyer_apres(cl, ln+1, global_args->res[indice_libre]);
                     pthread_create(&(global_args->threads[indice_libre]), NULL, (void*)rec_find_thread, NULL);
                     pthread_mutex_unlock(&acces_ids);
                     ajouter_dans_historique(global_args->threads[indice_libre]);
@@ -338,7 +350,7 @@ void rec_find_thread(){
                     rec_find_thread();
                 }else{
                     copier_chemins(thread_index, indice_libre);
-                    global_args->res[indice_libre][case_index + 1] = (Case){cl+1, ln};
+                    ajouter_coord_et_nettoyer_apres(cl+1, ln, global_args->res[indice_libre]);
                     pthread_create(&(global_args->threads[indice_libre]), NULL, (void*)rec_find_thread, NULL);
                     pthread_mutex_unlock(&acces_ids);
                     ajouter_dans_historique(global_args->threads[indice_libre]);
@@ -437,7 +449,7 @@ int ajouter_coord_et_nettoyer_apres(int col, int line, chemin c){
     Case s = {col, line};
     for(int i = CHEMIN_LENGTH -2 ; i >= 0 ; --i){
         if(c[i].col != UNUSED && c[i].line != UNUSED){
-            if(sont_voisines(c[i], s) || cases_egales(c[i], s)){// skipper toutes les cases à la fin de coordonnees{-1 ; -1} --optimisation du if possible
+            if(sont_voisines(c[i], s)){// skipper toutes les cases à la fin de coordonnees{-1 ; -1} --optimisation du if possible
                 c[i+1] = s; // case ajoutee
                 for(int j = i + 2 ; j < CHEMIN_LENGTH ; ++j)
                     c[j] = (Case){UNUSED, UNUSED};
