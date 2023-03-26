@@ -109,7 +109,8 @@ int ajouter_coord_et_nettoyer_apres(int col, int line, chemin c);
 int case_in_chemin(int col, int line, chemin c);
 
 /// @brief fonction recursive utilisant les threads seulement si NB_THREAD > 1. Sinon, la fonction rec_find sera appelée
-void rec_find_thread();
+void rec_find_thread_1();
+void rec_find_thread_2();
 
 /// @brief cree un labyrinth a partir d'un script python
 /// @param cols nombre de colonnes souhaitees (> 3)
@@ -149,11 +150,11 @@ Case trouver_porte(Laby l);
 /// @param l adresse du labyrinthe
 void free_labyrinth(Laby*);
 
-/// @brief verifies qu'une solution est correcte (elle va bien du depart a l'arrivee et chaque cases sont voisines)
+/// @brief A TESTER : verifies qu'une solution est correcte (elle va bien du depart a l'arrivee et chaque cases sont voisines)
 /// @param l labyrinthe concerne
 /// @param c chemin a evaluer
 /// @return 1 si solution correcte, 0 sinon
-int check_solution(Laby, chemin);
+int check_solution(Case*Case_tab, Case start, Case end);
 
 /// @brief affiche le labyrinthe d'une maniere visuelle, avec '#', ' '...
 /// @param  l le labyrinthe a afficher
