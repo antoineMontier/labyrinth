@@ -429,8 +429,7 @@ Case trouver_entree(Laby l){
                 start.col = i;
                 start.line = j;
                 //arret des boucles
-                i = l.lignes;
-                j = l.cols;
+                i = l.lignes; j = l.cols;
             }
 
     if(cases_egales(start, CASE_NULLE)){
@@ -449,8 +448,7 @@ Case trouver_sortie(Laby l){
                 end.col = i;
                 end.line = j;
                 //arret des boucles
-                i = l.lignes;
-                j = l.cols;
+                i = l.lignes; j = l.cols;
             }
 
     if(cases_egales(end, CASE_NULLE)){
@@ -491,9 +489,15 @@ int check_solution(Laby l, Case*Case_tab){
 }
 
 void print_labyrinth(Laby l){
-    //print upper indexs : 
-    for(int i = 0 ; i < l.cols ; i++)
-        printf("%d", i%10);
+    for(int i = 0 ; i < l.cols ; i++){
+        if(i < 10) printf(" ");
+        else printf("%d", i/10);
+    } 
+    printf("|\n");
+    for(int i = 0 ; i < l.cols ; i++) printf("%d", i%10);
+    printf("|\n");
+    for(int i = 0 ; i < l.cols ; i++) printf("-");
+
     printf("|+\n");
     for(int i=0; i < l.lignes; i++){
         for(int j=0; j < l.cols; j++)
@@ -534,15 +538,12 @@ void print_raw_labyrinth(Laby l){
 }
 
 void nettoyer_chemin(chemin c){
-    // se placer à l'indice fin : 
-    int ind_fin = CHEMIN_LENGTH-2;
+    int ind_fin = CHEMIN_LENGTH-2; // se placer à l'indice fin
     while(ind_fin >= 0 && cases_egales(c[ind_fin], CASE_NULLE)) ind_fin--;
 
-    if(ind_fin == 0) // chemin n'a aucune case valable, rien à nettoyer
-        return;
+    if(ind_fin == 0) return;// chemin n'a aucune case valable, rien à nettoyer
     
-    // chercher le premier voisin en continuant de remonter vers le depart
-    while(ind_fin >=0 && !sont_voisines(c[ind_fin], c[ind_fin-1])){
+    while(ind_fin >=0 && !sont_voisines(c[ind_fin], c[ind_fin-1])){ // chercher le premier voisin en continuant de remonter vers le depart
         c[ind_fin -1] = c[ind_fin];
         c[ind_fin] = CASE_NULLE;
         --ind_fin;
@@ -550,15 +551,13 @@ void nettoyer_chemin(chemin c){
 }
 
 void rec_find(Laby l, chemin res, Case current, Case end){
+    if(res == NULL){
+        printf("chemin doit etre declare avec malloc\n");
+        exit(1);
+    }
 
-    if(res == NULL)
-        fprintf(stderr, "chemin doit etre declare avec malloc\n");
-
-    if(res[CHEMIN_LENGTH-1].col == END_SIGNAL && res[CHEMIN_LENGTH-1].line == END_SIGNAL) // check end_signal
-        return; // une solution a deja ete trouvee
-    
+    if(res[CHEMIN_LENGTH-1].col == END_SIGNAL && res[CHEMIN_LENGTH-1].line == END_SIGNAL) return; // une solution a deja ete trouvee
     if(cases_egales(current, end)){
-
         // ajouter à la main la derniere case dans le chemin :
         for(int i=0; i<CHEMIN_LENGTH; i++)
             if(cases_egales(res[i], CASE_NULLE)){
@@ -583,10 +582,8 @@ void rec_find(Laby l, chemin res, Case current, Case end){
 }
 
 chemin solve_labyrinth(Laby l){
-
     Case start = trouver_entree(l);
     Case end = trouver_sortie(l);
-    
     chemin reponse = malloc(sizeof(chemin) * CHEMIN_LENGTH);
     
     for(int i = 0; i < CHEMIN_LENGTH; i++)
