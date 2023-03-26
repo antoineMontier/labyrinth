@@ -354,7 +354,6 @@ void rec_find_thread(){
             if(!case_in_chemin(cl+1, ln, global_args->res[thread_index])){
                 int indice_libre = get_first_room_for_new_thread();
                 if(!une_possibilites_de_mouvement((Case){cl, ln}) ||  indice_libre == -1){
-                    // print("ajout RIGHT");
                     ajouter_coord_et_nettoyer_apres(cl+1, ln, global_args->res[thread_index]);
                     pthread_mutex_unlock(&acces_ids);
                     rec_find_thread();
