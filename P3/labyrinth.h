@@ -10,12 +10,10 @@
 #define ENTREE_2 22
 #define EXIT_1 3
 #define EXIT_2 33
-#define VISITE_1 (-124)
-#define VISITE_2 (-125)
-#define VISITE_12 (-126) // si visite par les deux main threads
-#define PORTE 5
+#define PORTE 34
+#define VISITE (-124)
 #define END_SIGNAL (-123)
-#define NB_THREAD 8
+#define NB_THREAD 4
 #define NB_THREAD_TOATL (20*NB_THREAD) // imaginons que le nb max de threads est 20 fois le nombre max de threads simultanes
 
 #define CHEMIN_LENGTH (2000)
@@ -45,35 +43,28 @@ typedef struct {
 } Thread_args;
 
 /// @brief affiche pour chaque thread de 'global_args' son pthread_t et le chemin associe
-void print_ids_1();
-void print_ids_2();
-
+void print_ids();
 
 /// @param thread_index l'indice du thread pour lequel on veut une reponse
 /// @return la derniere case ajoute a son chemin (non nulle)
-int getLastCaseIndex_1(int thread_index);
-int getLastCaseIndex_2(int thread_index);
+int getLastCaseIndex(int thread_index);
 
 /// @brief ajoute l'indentifiant renseigne dans le vecteur threads_history de global_args, ca servira lors du join 
 /// @param thread_id identifiant a ajouter
-void ajouter_dans_historique_1(pthread_t thread_id);
-void ajouter_dans_historique_2(pthread_t thread_id);
+void ajouter_dans_historique(pthread_t thread_id);
 
 /// @brief resoud un labyrinth avec des threads (ne fonction de #define NB_THREAD, si NB_THREAD <= 1, resolution recursive, sinon resolution recursive avec des threads)
 /// @param l le labyrinth a resoudre, avec 2 pour entree et 3 pour sortie
 /// @return un vecteur de cases correspondant a l'alternance correcte des cases menant de l'entree a la sortie. les cases {-1, -1} ne sont pas a prendre en compte
-chemin solve_labyrinth_threads_1(Laby l, Case start, Case end);
-chemin solve_labyrinth_threads_2(Laby l, Case start, Case end);
+chemin solve_labyrinth_threads(Laby l, Case start, Case end);
 
 /// @brief trouve l'indice du thread en fonction de son pthread_id et du champ threads de global_args. identitifiant obtenu avec la fonction pthread_self()
 /// @return l'indice du thread
-int get_thread_num_1();
-int get_thread_num_2();
+int get_thread_num();
 
 /// @brief cherche une place de libre dans le champ threads de global_args
 /// @return -1 si aucune place, sinon retourne l'indice disponible
-int get_first_room_for_new_thread_1();
-int get_first_room_for_new_thread_2();
+int get_first_room_for_new_thread();
 
 /// @brief affiche un message precede du pthread_t obtenu avec la fonction pthread_self() et utilise un mutex (acces_out) pour ecrire tout d'un coup dans le terminal
 /// @param msg message a ecrire
@@ -82,15 +73,12 @@ void print(const char * msg);
 /// @brief copie dans le champ res de global_args
 /// @param from origine
 /// @param to destination
-void copier_chemins_1(int from, int to);
-void copier_chemins_2(int from, int to);
-
+void copier_chemins(int from, int to);
 
 /// @brief verifie s'il y a au moins une possibilite de mouvement pour une case precise sur les 4 cases alentoures (cherche une case differente de VISITE et MUR)
 /// @param c la case a partir de laquelle on cherche
 /// @return 0 si la case n'a pas d'autre voisins que des murs ou cases visitees, 1 sinon
-int une_possibilites_de_mouvement_1(Case c);
-int une_possibilites_de_mouvement_2(Case c);
+int une_possibilites_de_mouvement(Case c);
 
 /// @brief affiche la solution avec des lettres a-z-A-Z-a... dans le labyrinthe
 /// @param l labyrinthe en question
@@ -100,8 +88,7 @@ void print_solution(Laby l, chemin c);
 /// @brief cherche a savoir, etant donne l'indice du thread si son chemin associe est dans un cul de sac
 /// @param t_id indice du thread
 /// @return 1 si dans un cul de sac, 0 s'il y a des possibilites de mouvement
-int est_dans_un_cul_de_sac_1(int t_id);
-int est_dans_un_cul_de_sac_2(int t_id);
+int est_dans_un_cul_de_sac(int t_id);
 
 /// @brief affiche le chemin dans le terminal jusqu'aux cases {-1, -1}
 /// @param c chemin a afficher
@@ -121,8 +108,7 @@ int ajouter_coord_et_nettoyer_apres(int col, int line, chemin c);
 int case_in_chemin(int col, int line, chemin c);
 
 /// @brief fonction recursive utilisant les threads seulement si NB_THREAD > 1. Sinon, la fonction rec_find sera appelée
-void rec_find_thread_1();
-void rec_find_thread_2();
+void rec_find_thread();
 
 /// @brief cree un labyrinth a partir d'un script python
 /// @param cols nombre de colonnes souhaitees (> 3)
@@ -148,12 +134,11 @@ void print_Case(Case);
 /// @param l labyrinth pour lequel on cherche ENTREE (= 2)
 /// @return la case correspondant a l'entree
 Case trouver_entree_1(Laby l);
+Case trouver_entree_2(Laby l);
 
 /// @param l labyrinth pour lequel on cherche EXIT (= 2)
 /// @return la case correspondant a la sortie
 Case trouver_sortie_1(Laby l);
-
-Case trouver_entree_2(Laby l);
 Case trouver_sortie_2(Laby l);
 
 Case trouver_porte(Laby l);
@@ -162,11 +147,11 @@ Case trouver_porte(Laby l);
 /// @param l adresse du labyrinthe
 void free_labyrinth(Laby*);
 
-/// @brief A TESTER : verifies qu'une solution est correcte (elle va bien du depart a l'arrivee et chaque cases sont voisines)
+/// @brief verifies qu'une solution est correcte (elle va bien du depart a l'arrivee et chaque cases sont voisines)
 /// @param l labyrinthe concerne
 /// @param c chemin a evaluer
 /// @return 1 si solution correcte, 0 sinon
-int check_solution(Case*Case_tab, Case start, Case end);
+int check_solution(Laby, chemin);
 
 /// @brief affiche le labyrinthe d'une maniere visuelle, avec '#', ' '...
 /// @param  l le labyrinthe a afficher
@@ -192,9 +177,6 @@ void rec_find(Laby l, chemin res, Case current, Case end);
 /// @return un vecteur de case, chemin reponse
 chemin solve_labyrinth(Laby l);
 
+chemin* P3(Laby l);
 
-
-
-void course_threads();
-void manage_thread_1();
-void manage_thread_2();
+void nettoie_matrice(Laby*l)
