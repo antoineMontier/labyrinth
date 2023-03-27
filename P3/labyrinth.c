@@ -17,6 +17,30 @@ pthread_mutex_t solution_trouvee_2 = PTHREAD_MUTEX_INITIALIZER;
 
 pthread_mutex_t acces_out = PTHREAD_MUTEX_INITIALIZER;
 
+void course_threads(){
+    printf("lancement de la course avec %d threads par camp\n", NB_THREAD);
+    // ======== lancer les threads dans les fonctions solve_labyrinth_threads_1 & solve_labyrinth_threads_2
+
+    // ======== join les threads et recuperer leur chemins, afficher a l'ecran celui qui a passe la porte le plus vite
+
+    // ======== retirer toutes les cases VISITE_1.2.12
+
+    // ======== relancer les threads en direction de la sortie definitive
+
+
+    // ======== join les threads, recuperer leur chemins, l'ajouter au precedent et afficher a l'ecran celui qui a fini le plus vite
+
+    // ======== afficher le parcours respectifs des deux threads
+}
+
+// void manage_thread_1(){
+
+// }
+
+// void manage_thread_2(){
+
+// }
+
 void print_ids_1()
 {
     pthread_mutex_lock(&acces_out);
@@ -319,7 +343,6 @@ int get_first_room_for_new_thread_2()
     return -1;
 }
 
-
 void copier_chemins_1(int from, int to){
     if(from < 0 || from >= NB_THREAD || to < 0 || to >= NB_THREAD){
         print("Erreur : Mauvais indice de chemins dans la fonction copier_chemins_1");
@@ -363,7 +386,6 @@ int une_possibilites_de_mouvement_2(Case c){
     if(c.col+1 < global_args_2->l->lignes && (temp = global_args_2->l->m[c.col+1][c.line]) != MUR && temp != VISITE_2 && temp != VISITE_12) return 1;
     return 0;
 }
-
 
 int est_dans_un_cul_de_sac_1(int t_id){
     if(t_id == -1){ // gestion d'erreur

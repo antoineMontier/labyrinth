@@ -191,3 +191,10 @@ void rec_find(Laby l, chemin res, Case current, Case end);
 /// @param l labyrinthe a resoudre
 /// @return un vecteur de case, chemin reponse
 chemin solve_labyrinth(Laby l);
+
+
+
+
+void course_threads();
+void manage_thread_1();
+void manage_thread_2();

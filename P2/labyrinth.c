@@ -230,7 +230,7 @@ int ajouter_coord_et_nettoyer_apres(int col, int line, chemin c){
     }
     for(int i = CHEMIN_LENGTH -2 ; i >= 0 ; --i)
         if(!cases_egales(c[i], CASE_NULLE))
-            if(sont_voisines(c[i], s)){// skipper toutes les cases de coordonnees{-1 ; -1} --optimisation du if possible
+            if(sont_voisines(c[i], s)){
                 c[i+1] = s; // case ajoutee
                 for(int j = i + 2 ; !cases_egales(c[j], CASE_NULLE) && j < CHEMIN_LENGTH ; ++j)
                     c[j] = CASE_NULLE;
@@ -252,7 +252,7 @@ int case_in_chemin(int col, int line, chemin c){
 
 void rec_find_thread(){
     
-    //print_ids(); // affiche les thread_t ainsi que le chemin qu'ils ont parcouru
+    print_ids(); // affiche les thread_t ainsi que le chemin qu'ils ont parcouru
     // ================ ARRET : solution trouvee =================
     if(pthread_mutex_trylock(&solution_trouvee) == 0) {pthread_mutex_unlock(&solution_trouvee); pthread_exit(NULL);}
     // vérifier si le thread actuel est sur la case réponse
