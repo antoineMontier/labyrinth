@@ -7,39 +7,84 @@ pthread_mutex_t acces_out = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t acces_ids_history = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t solution_trouvee = PTHREAD_MUTEX_INITIALIZER;
 
+chemin read_file(const char* filename) {
+    chemin chemin = NULL;
+    int case_count = 0;
+    FILE* fp = fopen(filename, "r");
 
+    if (fp == NULL) {
+        printf("Unable to open file '%s'\n", filename);
+        return NULL;
+    }
+
+    char buffer[128];
+
+    int num_cases_expected = CHEMIN_LENGTH;
+    chemin = malloc(num_cases_expected * sizeof(Case));
+    // Read cases from file
+    while (fgets(buffer, sizeof(buffer), fp) != NULL) {
+    char* token = strtok(buffer, "|");
+    while (token != NULL) {
+        int col, line;
+        if (sscanf(token, "%d %d", &col, &line) == 2) {
+            chemin[case_count].col = col;
+            chemin[case_count].line = line;
+            case_count++;
+        } else {
+            printf("Error parsing token '%s'\n", token);
+        }
+        token = strtok(NULL, "|");
+    }
+}
+
+
+    // Close file
+    fclose(fp);
+
+    // Return array of cases
+    return chemin;
+}
 
 chemin* P3(Laby l){
-
+    if(NB_THREAD < 3){
+        printf("allouer au moins 4 Threads\n");
+        exit(1);
+    }
     // ==== trouver start_1/2, porte, end_1/2
-
+    print_labyrinth(l);
     Case start_1 = trouver_entree_1(l);
     Case start_2 = trouver_entree_2(l);
     Case end_1 = trouver_sortie_1(l);
     Case end_2 = trouver_sortie_2(l);
     Case porte = trouver_porte(l);
-    chemin ch1, ch2; // -- optimisation car 1 seul necessaire
+    l.m[start_1.col][start_1.line] = l.m[start_2.col][start_2.line] = l.m[end_2.col][end_2.line] = l.m[end_1.col][end_1.line] = l.m[porte.col][porte.line] = WAY;
 
+    print_raw_labyrinth(l);
+    chemin ch1, ch2; // -- optimisation car 1 seul necessaire
     // ==== fork
-    pid_t p_1 = getpid();
     pid_t son = fork();
 
+    printf("two forks\n");
 
     // ==== lancer entre ENTREE_1 et PORTE
     if(son > 0){
+        printf("pere, avant solve\n");
         ch1 = solve_labyrinth_threads(l, start_1, porte);
+        printf("pere, apres solve\n");
     }
     // ==== lancer entre ENTREE_2 et PORTE
     if(son == 0){
+        printf("fils, avant solve\n");
         ch2 = solve_labyrinth_threads(l, start_2, porte);
+        printf("fils, apres solve\n");
     }
-
+    printf("chercher chemin fini\n");
     // ==== ecrire le chemin parcouru entre ENTREE_1/2 et PORTE
     if(son > 0){
         FILE*result = fopen("a1.res", "w");
         if(result == NULL){
             printf("erreure ouverture fichier resultat n°1\n");
-            wait();
+            wait(NULL);
             exit(1);
         }
         fprintf(result, "[");
@@ -47,12 +92,17 @@ chemin* P3(Laby l){
             fprintf(result, "%d %d|", ch1[i].col, ch1[i].line);
         fclose(result);
         free(ch1);
+        // === nettoyer
+        printf("pere nettoie avant\n");
+        nettoie_matrice(l);
+        printf("pere nettoie apres\n");
         // === attendre que le fork ait fini
         FILE*attente;
         do{
             attente = fopen("a2.res", "r");
         }while(attente == NULL);
         fclose(attente); // continuer
+        printf("pere comprends que fils  a fini\n");
     }
 
     if(son == 0){
@@ -65,25 +115,33 @@ chemin* P3(Laby l){
         for(int i = 0 ; i < CHEMIN_LENGTH && !cases_egales(ch2[i], CASE_NULLE) ; ++i)
             fprintf(result, "%d %d|", ch2[i].col, ch2[i].line);
         fclose(result);
-        free(ch2);
+        free(ch2);        
+        // === nettoyer
+        printf("fils nettoie avant\n");
+        nettoie_matrice(l);
+        printf("fils nettoie apres\n");
         // === attendre que le main ait fini
         FILE*attente;
         do{
             attente = fopen("a1.res", "r");
         }while(attente == NULL);
         fclose(attente); // continuer
+        printf("fils comprends que pere a fini\n");
     }
 
-    // nettoyer les matrices
-    nettoie_matrice(global_args->l);
+    print_raw_labyrinth(l);
 
     // ==== lancer entre PORTE et SORTIE_1/2
     if(son > 0){
+        printf("pere, avant solve 2\n");
         ch1 = solve_labyrinth_threads(l, porte, end_1);
+        printf("pere, apres solve 2\n");
     }
     // ==== lancer entre ENTREE_2 et PORTE
     if(son == 0){
+        printf("fils, avant solve 2\n");
         ch2 = solve_labyrinth_threads(l, porte, end_2);
+        printf("fils, apres solve 2\n");
     }
 
     // ==== attendre les resultats
@@ -92,13 +150,13 @@ chemin* P3(Laby l){
         FILE*result = fopen("a1.res", "a");
         if(result == NULL){
             printf("erreure ouverture fichier resultat n°1\n");
-            wait();
+            wait(NULL);
             exit(1);
         }
         int i;
-        for(i = 1 ; i < CHEMIN_LENGTH && !cases_egales(ch1[i], CASE_NULLE) ; ++i)
-            fprintf(result, "%d %d|", ch1[i-1].col, ch1[i-1].line);
-        fprintf(result, "%d %d]", ch1[i].col, ch1[i].line);
+        for(i = 0 ; i+2 < CHEMIN_LENGTH && !cases_egales(ch1[i+2], CASE_NULLE) ; ++i)
+            fprintf(result, "%d %d|", ch1[i].col, ch1[i].line);
+        fprintf(result, "%d %d]", ch1[i+1].col, ch1[i+1].line);
         fclose(result);
         free(ch1);
     }
@@ -111,67 +169,42 @@ chemin* P3(Laby l){
             exit(1);
         }
         int i;
-        for(i = 1 ; i < CHEMIN_LENGTH && !cases_egales(ch2[i], CASE_NULLE) ; ++i)
-            fprintf(result, "%d %d|", ch2[i-1].col, ch2[i-1].line);
-        fprintf(result, "%d %d]", ch2[i].col, ch2[i].line);
+        for(i = 0 ; i+2 < CHEMIN_LENGTH && !cases_egales(ch2[i+2], CASE_NULLE) ; ++i)
+            fprintf(result, "%d %d|", ch2[i].col, ch2[i].line);
+        fprintf(result, "%d %d]", ch2[i+1].col, ch2[i+1].line);
         fclose(result);
         free(ch2);
         exit(0);
     }
 
     // ==== wait 
-    wait();
+    wait(NULL);
     // ici il n'y a plus que le fork initial
     // ==== lire les chemins
 
     chemin*reponse = malloc(2*sizeof(chemin));
-    reponse[0] = malloc(CHEMIN_LENGTH*sizeof(Case));
-    reponse[1] = malloc(CHEMIN_LENGTH*sizeof(Case));
-
-    // init
-    for(int i = 0 ; i < CHEMIN_LENGTH ; ++i)
-        reponse[0][i] = reponse[1][i] = CASE_NULLE;
-
-    FILE*read_1 = fopen("a1.res", "r");
-    if(read_1 == NULL){
-        printf("erreur dans la recuperation des resultats");
-        free(reponse[0]);
-        free(reponse[1]);
-        free(reponse);
-        exit(1);
-    }
-
-    while(!feof(read_1)){
-        fge
-    }
-
-    FILE*read_2 = fopen("a2.res", "r");
-    if(read_2 == NULL){
-        printf("erreur dans la recuperation des resultats");
-        free(reponse[0]);
-        free(reponse[1]);
-        free(reponse);
-        fclose(read_1);
-        exit(1);
-    }
-
-
-
-
+    reponse[0] = read_file("a1.res");
+    reponse[1] = read_file("a2.res");
 
     // ==== suppr les fichiers
 
-    system("rm a1.res a2.res");
+    // system("rm a1.res a2.res");
 
+    // ==== remettre les cases comme elles etaient
+    l.m[start_1.col][start_1.line] = ENTREE_1;
+    l.m[start_2.col][start_2.line] = ENTREE_2;
+    l.m[end_2.col][end_2.line] = EXIT_2;
+    l.m[end_1.col][end_1.line] = EXIT_1;
+    l.m[porte.col][porte.line] = PORTE;
 
-
+    return reponse;
 }
 
-void nettoie_matrice(Laby*l){
-    for(int i=0; i < l->lignes; i++)
-        for(int j=0; j < l->cols; j++)
-            if(l->m[i][j] == VISITE)
-                l->m[i][j] = WAY;
+void nettoie_matrice(Laby l){
+    for(int i=0; i < l.lignes; i++)
+        for(int j=0; j < l.cols; j++)
+            if(l.m[i][j] == VISITE)
+                l.m[i][j] = WAY;
 }
 
 void print_ids(){
@@ -217,10 +250,8 @@ void ajouter_dans_historique(pthread_t thread_id){
 }
 
 chemin solve_labyrinth_threads(Laby l, Case start, Case end){ 
-    if(NB_THREAD <= 1) return solve_labyrinth(l);
-    int entry = l.m[start.col][start.line];
-    int exit = l.m[end.col][end.line];
     l.m[start.col][start.line] = VISITE;
+    l.m[end.col][end.line] = WAY;
     global_args = malloc(sizeof(Thread_args));
     global_args->l = &l;
     global_args->end = end;
@@ -262,9 +293,7 @@ chemin solve_labyrinth_threads(Laby l, Case start, Case end){
     free(global_args->res);
     free(global_args->threads);
     free(global_args->threads_history);
-    free(global_args);
-    l.m[start.col][start.line] = entry; l.m[end.col][end.line] = exit;
-    
+    free(global_args);    
     return reponse_finale;
 }
 
@@ -386,58 +415,57 @@ int case_in_chemin(int col, int line, chemin c){
 
 void rec_find_thread(){
     
-    print_ids(); // affiche les thread_t ainsi que le chemin qu'ils ont parcouru
+    // print_ids();
+    // print_labyrinth(*global_args->l);
     // ================ ARRET : solution trouvee =================
     if(pthread_mutex_trylock(&solution_trouvee) == 0) {pthread_mutex_unlock(&solution_trouvee); pthread_exit(NULL);}
-    // vérifier si le thread actuel est sur la case réponse
 
     // ================ Recuperer le n° de thread, la case sur laquelle il se trouve et lrd caracteristiques de cette cas =================
-    pthread_mutex_lock(&acces_ids); // ======= lock
+    pthread_mutex_lock(&acces_ids);
 
-    int thread_index = get_thread_num(); // n° de thread
-    int case_index = getLastCaseIndex(thread_index); // n° de case
+    int thread_index = get_thread_num();
+    int case_index = getLastCaseIndex(thread_index);
     if(case_index >= CHEMIN_LENGTH - 2){
         print("pas assez de memoire allouee au vecteur de chemins");
         exit(1);
     }
-    int ln = global_args->res[thread_index][case_index].line, cl = global_args->res[thread_index][case_index].col; // n° de ligne et de colonne
+    int ln = global_args->res[thread_index][case_index].line, cl = global_args->res[thread_index][case_index].col;
 
-    pthread_mutex_unlock(&acces_ids); // ===== unlock
+    pthread_mutex_unlock(&acces_ids);
 
     // ================ ARRET : je suis sur la case end ====================
     if(cases_egales((Case){cl, ln}, global_args->end)){
-        pthread_mutex_lock(&acces_ids); // lock ici pour attendre que tout le mode ecrive dans sa memoire associee et eviter les segfault
+        pthread_mutex_lock(&acces_ids);
         pthread_mutex_unlock(&acces_ids);
-        pthread_mutex_unlock(&solution_trouvee); // debloquer pour signaler que la solution est trouvee
+        pthread_mutex_unlock(&solution_trouvee);
         pthread_exit(NULL);
     }
-    // ============== CHECK DIRECTIONS ========================= Je nai commente que pour cette direction, les 4 directions ont le meme code, elles different par les cases dans laquelle la recurtisvite / thread est lance.
+    // ============== CHECK DIRECTIONS =========================    
     if(ln-1 >= 0){
-        pthread_mutex_lock(&acces_laby);       // lock le labyrinth pour ne pas se melanger avec les autres threads (exemple d'un thread qui voudrait visiter la même case en meme temps, les deux voient qulle est libre... et cest le bazar)
-        if(global_args->l->m[cl][ln-1] ==  WAY || global_args->l->m[cl][ln-1] ==  EXIT){ // verifier que c'est possible d'xplorer la case ( condition equivalente a [global_args->l->m[cl][ln-1] !=  MUR && global_args->l->m[cl][ln-1] !=  VISITE])
-            global_args->l->m[cl][ln-1] = VISITE; // marquer la case comme visitee
-            pthread_mutex_unlock(&acces_laby); // liberer lacces au labyrinth
-            pthread_mutex_lock(&acces_ids); // bloquer l'acces a la memoire des identifiants de threads ainsi que leur memoires correspondant aux chemins
-            if(!case_in_chemin(cl, ln-1, global_args->res[thread_index])){ // verifier que la case a ajouter n'est pas deja dans le chemin --optimisation ?
-                int indice_libre = get_first_room_for_new_thread(); // retourne un indice libre. si pas d'indice libre, retourne -1
-                if(!une_possibilites_de_mouvement((Case){cl, ln}) ||  indice_libre == -1){ /*indice_libre == -1 signifie que le nombre max de thread est atteint*/
-                    ajouter_coord_et_nettoyer_apres(cl, ln-1, global_args->res[thread_index]); // nettoie toutes les cases apres celle que l'on vient d'ajouter. la case que l'on vient d'ajouter a ete ajoutee a cote d'une case voisine (selon la logique du backtrack)
-                    pthread_mutex_unlock(&acces_ids); // deverouiller l'acces memoire des que possible
-                    rec_find_thread(); // lancer la recursivite
+        pthread_mutex_lock(&acces_laby);      
+        if(global_args->l->m[cl][ln-1] ==  WAY || global_args->l->m[cl][ln-1] ==  EXIT_1 || global_args->l->m[cl][ln-1] ==  EXIT_2){
+            global_args->l->m[cl][ln-1] = VISITE;
+            pthread_mutex_unlock(&acces_laby);
+            pthread_mutex_lock(&acces_ids);
+            if(!case_in_chemin(cl, ln-1, global_args->res[thread_index])){
+                int indice_libre = get_first_room_for_new_thread();
+                if(!une_possibilites_de_mouvement((Case){cl, ln}) ||  indice_libre == -1){
+                    ajouter_coord_et_nettoyer_apres(cl, ln-1, global_args->res[thread_index]);
+                    pthread_mutex_unlock(&acces_ids);
+                    rec_find_thread();
                 }else{
-                    //print(">thread");// ==================== thread 
-                    copier_chemins(thread_index, indice_libre); // copier le chemin parcouru pour que le nv thread sache où il est et en cas de solution, il puisse donner le chemin entier
-                    ajouter_coord_et_nettoyer_apres(cl, ln-1, global_args->res[indice_libre]); // ajouter la case suivante au vecteur de la meme maniere que dans la fonction recursive
-                    pthread_create(&(global_args->threads[indice_libre]), NULL, (void*)rec_find_thread, NULL); // lancer le thread, grace aux varaibles partagees, pas besoin d'arguments ni de valeurs de retour
-                    pthread_mutex_unlock(&acces_ids); // apres (pas avant car le lancement de thread ecrit dans la memoire la valeur du pthread_t cree) on libere l'acces memoire.
-                    ajouter_dans_historique(global_args->threads[indice_libre]); // on ajoute dans l'historique juste apres.
+                    copier_chemins(thread_index, indice_libre);
+                    ajouter_coord_et_nettoyer_apres(cl, ln-1, global_args->res[indice_libre]);
+                    pthread_create(&(global_args->threads[indice_libre]), NULL, (void*)rec_find_thread, NULL);
+                    pthread_mutex_unlock(&acces_ids);
+                    ajouter_dans_historique(global_args->threads[indice_libre]);
                 }
-            }else pthread_mutex_unlock(&acces_ids); // debloquer l'acces memoire si on n'est pas rentre dans le if
-        }else pthread_mutex_unlock(&acces_laby); // liberer l'acces au labyrinth si on n'est pas rentre dans le if (pas de chemin possible...)
+            }else pthread_mutex_unlock(&acces_ids);
+        }else pthread_mutex_unlock(&acces_laby);
     }
     if(cl-1 >= 0){
         pthread_mutex_lock(&acces_laby);    
-        if(global_args->l->m[cl-1][ln] ==  WAY || global_args->l->m[cl-1][ln] ==  EXIT){
+        if(global_args->l->m[cl-1][ln] ==  WAY || global_args->l->m[cl-1][ln] ==  EXIT_1 || global_args->l->m[cl-1][ln] ==  EXIT_2){
             global_args->l->m[cl-1][ln] = VISITE;
             pthread_mutex_unlock(&acces_laby);
             pthread_mutex_lock(&acces_ids);
@@ -459,7 +487,7 @@ void rec_find_thread(){
     }
     if(ln+1 < global_args->l->cols){
         pthread_mutex_lock(&acces_laby);    
-        if(global_args->l->m[cl][ln+1] ==  WAY || global_args->l->m[cl][ln+1] ==  EXIT){
+        if(global_args->l->m[cl][ln+1] ==  WAY || global_args->l->m[cl][ln+1] ==  EXIT_1 || global_args->l->m[cl][ln+1] ==  EXIT_2){
             global_args->l->m[cl][ln+1] = VISITE;
             pthread_mutex_unlock(&acces_laby);
             pthread_mutex_lock(&acces_ids);
@@ -481,7 +509,7 @@ void rec_find_thread(){
     }
     if(cl+1 < global_args->l->lignes){
         pthread_mutex_lock(&acces_laby);    
-        if(global_args->l->m[cl+1][ln] ==  WAY || global_args->l->m[cl+1][ln] ==  EXIT){
+        if(global_args->l->m[cl+1][ln] ==  WAY || global_args->l->m[cl+1][ln] ==  EXIT_1 || global_args->l->m[cl+1][ln] ==  EXIT_2){
             global_args->l->m[cl+1][ln] = VISITE;
             pthread_mutex_unlock(&acces_laby);
             pthread_mutex_lock(&acces_ids);
@@ -688,25 +716,6 @@ void free_labyrinth(Laby*l){
     l->m = NULL;
 }
 
-int check_solution(Laby l, Case*Case_tab){
-    //verifier ENTREE
-    if(l.m[Case_tab[0].col][Case_tab[0].line] != ENTREE) return 0; //false
-
-    int index_end;
-    //avancer index_end jusqu'au cases inutilisees
-    for(index_end = 0; index_end < CHEMIN_LENGTH-2 ; index_end++)
-        if(cases_egales(Case_tab[index_end+1], CASE_NULLE))
-            break;
-
-    if(index_end == CHEMIN_LENGTH - 1) return 0; // pas de fin de chemin
-
-    //verifier que les cases sont voisines
-    for(int i = 1; i <= index_end ; i++)
-        if(!sont_voisines(Case_tab[i], Case_tab[i-1])) return 0;
-
-    return 1; // tous tests passes
-}
-
 void print_labyrinth(Laby l){
     for(int i = 0 ; i < l.cols ; i++){
         if(i < 10) printf(" ");
@@ -727,10 +736,19 @@ void print_labyrinth(Laby l){
                 case WAY:
                     printf(" ");
                     break;
-                case ENTREE:
+                case ENTREE_1:
                     printf("+");
                     break;
-                case EXIT:
+                case ENTREE_2:
+                    printf("+");
+                    break;
+                case PORTE:
+                    printf("@");
+                    break;
+                case EXIT_1:
+                    printf("-");
+                    break;
+                case EXIT_2:
                     printf("-");
                     break;
                 case VISITE:
@@ -747,75 +765,11 @@ void print_labyrinth(Laby l){
 void print_raw_labyrinth(Laby l){
     //print upper indexs : 
     for(int i = 0 ; i < l.cols ; i++)
-        printf("%d\t\t", i%10);
+        printf("%d", i%10);
     printf("|+\n");
     for(int i=0; i < l.lignes; i++){
         for(int j=0; j < l.cols; j++)
-            printf("m[%d, %d]=%d\t",i, j, l.m[i][j]);
+            printf("%d",l.m[i][j]);
         printf("|%d\n", i);
     }
-}
-
-void nettoyer_chemin(chemin c){
-    int ind_fin = CHEMIN_LENGTH-2; // se placer à l'indice fin
-    while(ind_fin >= 0 && cases_egales(c[ind_fin], CASE_NULLE)) ind_fin--;
-
-    if(ind_fin == 0) return;// chemin n'a aucune case valable, rien à nettoyer
-    
-    while(ind_fin >=0 && !sont_voisines(c[ind_fin], c[ind_fin-1])){ // chercher le premier voisin en continuant de remonter vers le depart
-        c[ind_fin -1] = c[ind_fin];
-        c[ind_fin] = CASE_NULLE;
-        --ind_fin;
-    }
-}
-
-void rec_find(Laby l, chemin res, Case current, Case end){
-    if(res == NULL){
-        printf("chemin doit etre declare avec malloc\n");
-        exit(1);
-    }
-
-    if(res[CHEMIN_LENGTH-1].col == END_SIGNAL && res[CHEMIN_LENGTH-1].line == END_SIGNAL) return; // une solution a deja ete trouvee
-    if(cases_egales(current, end)){
-        // ajouter à la main la derniere case dans le chemin :
-        for(int i=0; i<CHEMIN_LENGTH; i++)
-            if(cases_egales(res[i], CASE_NULLE)){
-                res[i] = end;
-                break;
-            }
-        res[CHEMIN_LENGTH-1] = (Case){END_SIGNAL, END_SIGNAL};
-        return;
-    }
-
-    // marquer la case comme visitée : 
-    l.m[current.col][current.line] = VISITE;
-
-    //ajouter la case dans le chemin
-    ajouter_coord_et_nettoyer_apres(current.col, current.line, res);
-
-    // verifier les 4 directions
-    if(current.line-1 >= 0      && !case_in_chemin(current.col, current.line-1, res) && l.m[current.col][current.line-1] != MUR && l.m[current.col][current.line-1] !=  VISITE) rec_find(l, res, (Case){current.col, current.line-1}, end);
-    if(current.col - 1 >= 0     && !case_in_chemin(current.col-1, current.line, res) && l.m[current.col-1][current.line] != MUR && l.m[current.col-1][current.line] !=  VISITE) rec_find(l, res, (Case){current.col-1, current.line}, end);   
-    if(current.line+1 < l.cols  && !case_in_chemin(current.col, current.line+1, res) && l.m[current.col][current.line+1] != MUR && l.m[current.col][current.line+1] !=  VISITE) rec_find(l, res, (Case){current.col, current.line+1}, end);
-    if(current.col+1 < l.lignes && !case_in_chemin(current.col+1, current.line, res) && l.m[current.col+1][current.line] != MUR && l.m[current.col+1][current.line] !=  VISITE) rec_find(l, res, (Case){current.col+1, current.line}, end);
-}
-
-chemin solve_labyrinth(Laby l){
-    Case start = trouver_entree(l);
-    Case end = trouver_sortie(l);
-    chemin reponse = malloc(sizeof(chemin) * CHEMIN_LENGTH);
-    
-    for(int i = 0; i < CHEMIN_LENGTH; i++)
-        reponse[i] = CASE_NULLE;
-
-    // lancer la recursivite
-    rec_find(l, reponse, start, end);
-
-    //remettre la case depart : 
-    l.m[start.col][start.line] = ENTREE;
-
-    // nettoyer la reponse si necessaire : 
-    if(!check_solution(l, reponse)) nettoyer_chemin(reponse);
-
-    return reponse;
 }

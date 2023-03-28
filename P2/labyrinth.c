@@ -252,7 +252,7 @@ int case_in_chemin(int col, int line, chemin c){
 
 void rec_find_thread(){
     
-    print_ids(); // affiche les thread_t ainsi que le chemin qu'ils ont parcouru
+    //print_ids(); // affiche les thread_t ainsi que le chemin qu'ils ont parcouru
     // ================ ARRET : solution trouvee =================
     if(pthread_mutex_trylock(&solution_trouvee) == 0) {pthread_mutex_unlock(&solution_trouvee); pthread_exit(NULL);}
     // vérifier si le thread actuel est sur la case réponse

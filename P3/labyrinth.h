@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <string.h>
+#include <sys/wait.h>
 
 #define UNUSED (-1)
 #define MUR 0
@@ -13,7 +15,7 @@
 #define PORTE 34
 #define VISITE (-124)
 #define END_SIGNAL (-123)
-#define NB_THREAD 4
+#define NB_THREAD 8
 #define NB_THREAD_TOATL (20*NB_THREAD) // imaginons que le nb max de threads est 20 fois le nombre max de threads simultanes
 
 #define CHEMIN_LENGTH (2000)
@@ -151,7 +153,7 @@ void free_labyrinth(Laby*);
 /// @param l labyrinthe concerne
 /// @param c chemin a evaluer
 /// @return 1 si solution correcte, 0 sinon
-int check_solution(Laby, chemin);
+//  int check_solution(Laby, chemin);
 
 /// @brief affiche le labyrinthe d'une maniere visuelle, avec '#', ' '...
 /// @param  l le labyrinthe a afficher
@@ -161,22 +163,6 @@ void print_labyrinth(Laby);
 /// @param l le labyrinthe a afficher
 void print_raw_labyrinth(Laby l);
 
-/// @brief traitement paliatif au chemin trouve par la recusivite pure car il y a parfois des restes de backtrack dans le chemin reponse
-/// @param c chemin a nettoyer
-void nettoyer_chemin(chemin c);
-
-/// @brief fonction recursive simple pour trouver une solution au labyrinth
-/// @param l labyrinth probleme
-/// @param res vecteur de case, reponse
-/// @param current case actuelle
-/// @param end case finale (cible)
-void rec_find(Laby l, chemin res, Case current, Case end);
-
-/// @brief lance la recursivite simple pour resoudre le labyrinthe et renvoit son resultat
-/// @param l labyrinthe a resoudre
-/// @return un vecteur de case, chemin reponse
-chemin solve_labyrinth(Laby l);
-
 chemin* P3(Laby l);
 
-void nettoie_matrice(Laby*l)
+void nettoie_matrice(Laby l);

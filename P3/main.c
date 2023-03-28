@@ -9,19 +9,13 @@
 */
 int main(){
     Laby l = creer_labyrinth(10, 10);
-    //print_labyrinth(l);
-    chemin ans = solve_labyrinth_threads(l);
-    //printf("before print_chemin\n");
-    //print_chemin(ans);
-    if(check_solution(l, ans))
-        printf("Solution OK\n");
-    else
-        printf("Solution NOT ok\n");
-    print_solution(l, ans);
-    //printf("before free\n");
-    free(ans);
+    print_labyrinth(l);
+    chemin* res = P3(l);//solve_labyrinth_threads(l, (Case)trouver_porte(l), (Case)trouver_sortie_1(l));
+    //print_solution(l, res);
+    //free(res);
+    free(res[0]);
+    free(res[1]);
+    free(res);
     free_labyrinth(&l);
-    //printf("after free\n");
-
     return 0;
 }
