@@ -166,3 +166,4 @@ void print_raw_labyrinth(Laby l);
 chemin* P3(Laby l);
 
 void nettoie_matrice(Laby l);
+Laby copie_labyrinth(Laby l);

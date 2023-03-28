@@ -64,23 +64,29 @@ chemin* P3(Laby l){
     // ==== fork
     pid_t son = fork();
 
-    printf("two forks\n");
+    //printf("two forks\n");
 
     // ==== lancer entre ENTREE_1 et PORTE
     if(son > 0){
-        printf("pere, avant solve\n");
+        //printf("pere, avant solve\n");
         ch1 = solve_labyrinth_threads(l, start_1, porte);
-        printf("pere, apres solve\n");
+        printf("pere, apres solve 1\n");
     }
     // ==== lancer entre ENTREE_2 et PORTE
     if(son == 0){
-        printf("fils, avant solve\n");
+        //printf("fils, avant solve\n");
         ch2 = solve_labyrinth_threads(l, start_2, porte);
-        printf("fils, apres solve\n");
+        printf("fils, apres solve 1\n");
     }
     printf("chercher chemin fini\n");
     // ==== ecrire le chemin parcouru entre ENTREE_1/2 et PORTE
     if(son > 0){
+
+        // === nettoyer
+        // printf("pere nettoie avant\n");
+        nettoie_matrice(l);
+        printf("pere nettoie apres 1\n");
+
         FILE*result = fopen("a1.res", "w");
         if(result == NULL){
             printf("erreure ouverture fichier resultat n°1\n");
@@ -92,10 +98,7 @@ chemin* P3(Laby l){
             fprintf(result, "%d %d|", ch1[i].col, ch1[i].line);
         fclose(result);
         free(ch1);
-        // === nettoyer
-        printf("pere nettoie avant\n");
-        nettoie_matrice(l);
-        printf("pere nettoie apres\n");
+
         // === attendre que le fork ait fini
         FILE*attente;
         do{
@@ -106,6 +109,12 @@ chemin* P3(Laby l){
     }
 
     if(son == 0){
+        // === nettoyer
+        // printf("fils nettoie avant\n");
+        nettoie_matrice(l);
+        printf("fils nettoie apres 1\n");
+        // === attendre que le main ait fini
+
         FILE*result = fopen("a2.res", "w");
         if(result == NULL){
             printf("erreure ouverture fichier resultat n°2\n");
@@ -116,11 +125,7 @@ chemin* P3(Laby l){
             fprintf(result, "%d %d|", ch2[i].col, ch2[i].line);
         fclose(result);
         free(ch2);        
-        // === nettoyer
-        printf("fils nettoie avant\n");
-        nettoie_matrice(l);
-        printf("fils nettoie apres\n");
-        // === attendre que le main ait fini
+
         FILE*attente;
         do{
             attente = fopen("a1.res", "r");
@@ -205,6 +210,20 @@ void nettoie_matrice(Laby l){
         for(int j=0; j < l.cols; j++)
             if(l.m[i][j] == VISITE)
                 l.m[i][j] = WAY;
+}
+
+Laby copie_labyrinth(Laby l){
+    Laby res;
+    res.cols = l.cols;res.lignes = l.lignes;
+    res.m = malloc(res.lignes * sizeof(int *));
+    for (int i = 0; i < res.lignes; i++)
+        res.m[i] = (int *)malloc(res.cols * sizeof(int));
+
+    // copier
+    for(int i = 0 ; i < res.lignes ; ++i)
+        for(int j = 0 ; j < res.cols ; ++j)
+            res.m[i][j] = l.m[i][j];
+    return res;
 }
 
 void print_ids(){
