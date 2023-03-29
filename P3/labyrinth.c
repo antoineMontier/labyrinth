@@ -51,43 +51,32 @@ chemin* P3(Laby l){
         exit(1);
     }
     // ==== trouver start_1/2, porte, end_1/2
-    print_labyrinth(l);
     Case start_1 = trouver_entree_1(l);
     Case start_2 = trouver_entree_2(l);
     Case end_1 = trouver_sortie_1(l);
     Case end_2 = trouver_sortie_2(l);
     Case porte = trouver_porte(l);
     l.m[start_1.col][start_1.line] = l.m[start_2.col][start_2.line] = l.m[end_2.col][end_2.line] = l.m[end_1.col][end_1.line] = l.m[porte.col][porte.line] = WAY;
-
-    print_raw_labyrinth(l);
+    print_labyrinth(l);
     chemin ch1, ch2; // -- optimisation car 1 seul necessaire
     Laby copie_l = copie_labyrinth(l);
     // ==== fork
+    printf("avant fork\n");
     pid_t son = fork();
 
     //printf("two forks\n");
 
     // ==== lancer entre ENTREE_1 et PORTE
     if(son > 0){
-        //printf("pere, avant solve\n");
         ch1 = solve_labyrinth_threads(l, start_1, porte);
-        printf("pere, apres solve 1\n");
     }
     // ==== lancer entre ENTREE_2 et PORTE
     if(son == 0){
-        //printf("fils, avant solve\n");
-        ch2 = solve_labyrinth_threads(l, start_2, porte);
-        printf("fils, apres solve 1\n");
+        ch2 = solve_labyrinth_threads(copie_l, start_2, porte);
     }
-    printf("chercher chemin fini\n");
+
     // ==== ecrire le chemin parcouru entre ENTREE_1/2 et PORTE
     if(son > 0){
-
-        // === nettoyer
-        // printf("pere nettoie avant\n");
-        nettoie_matrice(l);
-        printf("pere nettoie apres 1\n");
-
         FILE*result = fopen("a1.res", "w");
         if(result == NULL){
             printf("erreure ouverture fichier resultat n°1\n");
@@ -99,21 +88,16 @@ chemin* P3(Laby l){
             fprintf(result, "%d %d|", ch1[i].col, ch1[i].line);
         fclose(result);
         free(ch1);
-
+        nettoie_matrice(l);
         // === attendre que le fork ait fini
         FILE*attente;
         do{
             attente = fopen("a2.res", "r");
         }while(attente == NULL);
         fclose(attente); // continuer
-        printf("pere comprends que fils  a fini\n");
     }
 
-    if(son == 0){
-        // === nettoyer
-        // printf("fils nettoie avant\n");
-        nettoie_matrice(l);
-        printf("fils nettoie apres 1\n");
+    if(son == 0){        
         // === attendre que le main ait fini
 
         FILE*result = fopen("a2.res", "w");
@@ -126,28 +110,24 @@ chemin* P3(Laby l){
             fprintf(result, "%d %d|", ch2[i].col, ch2[i].line);
         fclose(result);
         free(ch2);        
-
+        nettoie_matrice(copie_l);
         FILE*attente;
         do{
             attente = fopen("a1.res", "r");
         }while(attente == NULL);
         fclose(attente); // continuer
-        printf("fils comprends que pere a fini\n");
     }
 
-    print_raw_labyrinth(l);
 
     // ==== lancer entre PORTE et SORTIE_1/2
     if(son > 0){
-        printf("pere, avant solve 2\n");
+        printf("=\n=\n=\n=\n=\n============================================================ lancement pere\n");
         ch1 = solve_labyrinth_threads(l, porte, end_1);
-        printf("pere, apres solve 2\n");
     }
     // ==== lancer entre ENTREE_2 et PORTE
     if(son == 0){
-        printf("fils, avant solve 2\n");
-        ch2 = solve_labyrinth_threads(l, porte, end_2);
-        printf("fils, apres solve 2\n");
+        printf("=\n=\n=\n=\n=\n============================================================ lancement fils\n");
+        ch2 = solve_labyrinth_threads(copie_l, porte, end_2);
     }
 
     // ==== attendre les resultats
@@ -195,6 +175,9 @@ chemin* P3(Laby l){
     // ==== suppr les fichiers
 
     // system("rm a1.res a2.res");
+
+    // ==== supprmier la copie du labyrinth
+    free_labyrinth(&copie_l);
 
     // ==== remettre les cases comme elles etaient
     l.m[start_1.col][start_1.line] = ENTREE_1;
@@ -434,8 +417,8 @@ int case_in_chemin(int col, int line, chemin c){
 }
 
 void rec_find_thread(){
-    
-    // print_ids();
+    printf("un tour dans rec_find_threads %d\n", getpid());
+     print_ids();
     // print_labyrinth(*global_args->l);
     // ================ ARRET : solution trouvee =================
     if(pthread_mutex_trylock(&solution_trouvee) == 0) {pthread_mutex_unlock(&solution_trouvee); pthread_exit(NULL);}
@@ -772,7 +755,7 @@ void print_labyrinth(Laby l){
                     printf("-");
                     break;
                 case VISITE:
-                    printf(" ");
+                    printf("~");
                     break;
                 default:
                     printf("%c", l.m[i][j]);
