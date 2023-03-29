@@ -61,6 +61,7 @@ chemin* P3(Laby l){
 
     print_raw_labyrinth(l);
     chemin ch1, ch2; // -- optimisation car 1 seul necessaire
+    Laby copie_l = copie_labyrinth(l);
     // ==== fork
     pid_t son = fork();
 
