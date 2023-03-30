@@ -8,7 +8,7 @@
 #define WAY 1
 #define ENTREE 2
 #define EXIT 3
-#define VISITE (-124)
+#define VISITE (-124) 
 #define END_SIGNAL (-123)
 #define NB_THREAD 16
 #define NB_THREAD_TOATL (20*NB_THREAD) // imaginons que le nb max de threads est 20 fois le nombre max de threads simultanes
@@ -169,3 +169,12 @@ void rec_find(Laby l, chemin res, Case current, Case end);
 /// @param l labyrinthe a resoudre
 /// @return un vecteur de case, chemin reponse
 chemin solve_labyrinth(Laby l);
+
+/// @brief alloue la stucture partagee servant a la resolution recursive avec des threads du labyrinthe
+/// @param l addresse du labyrinthe
+/// @param start case de depart
+/// @param end case de fin
+void allouer_arguments(Laby *l, Case start, Case end);
+
+/// @brief libere la memoire de la structure partagee
+void free_arguments();

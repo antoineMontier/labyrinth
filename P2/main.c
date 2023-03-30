@@ -9,7 +9,7 @@
 */
 int main(){
     Laby l = creer_labyrinth(100, 20);
-    //print_labyrinth(l);
+    //print_labyrinth(l); 
     chemin ans = solve_labyrinth_threads(l);
     //printf("before print_chemin\n");
     //print_chemin(ans);
@@ -17,7 +17,7 @@ int main(){
         printf("Solution OK\n");
     else
         printf("Solution NOT ok\n");
-    print_solution(l, ans);
+    //print_solution(l, ans);
     //printf("before free\n");
     free(ans);
     free_labyrinth(&l);

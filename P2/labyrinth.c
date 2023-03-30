@@ -17,7 +17,7 @@ void print_ids(){
     }
     printf("=================\n\n");
     pthread_mutex_unlock(&acces_out);
-}
+} 
 
 int getLastCaseIndex(int thread_index){
     if(thread_index == -1){
@@ -50,18 +50,11 @@ void ajouter_dans_historique(pthread_t thread_id){
     }
 }
 
-chemin solve_labyrinth_threads(Laby l){ 
-    // si NB_THREAD == 1, lancer en recursif normal
-    if(NB_THREAD <= 1) return solve_labyrinth(l);
-
-    Case start = trouver_entree(l);
-    Case end = trouver_sortie(l);  
-    l.m[start.col][start.line] = VISITE;
-
+void allouer_arguments(Laby *l, Case start, Case end){
     // allouer la struct partagee par les threads
     global_args = malloc(sizeof(Thread_args));
     // == donner l'acces en lecture/ecriture au labyrinth
-    global_args->l = &l;
+    global_args->l = l;
     // == donner l'acces en lecture a la case sortie
     global_args->end = end;
     // == allouer le vecteur de chemins
@@ -85,6 +78,26 @@ chemin solve_labyrinth_threads(Laby l){
     // == initialiser pour ne pas avoir de mauvaise surprise
     for(int i = 0 ; i < NB_THREAD_TOATL ; i++)
         global_args->threads_history[i] = 0;
+}
+
+void free_arguments(){
+    for(int i = 0 ; i < NB_THREAD ; ++i)
+        free(global_args->res[i]);
+    free(global_args->res);
+    free(global_args->threads);
+    free(global_args->threads_history);
+    free(global_args);
+}
+
+chemin solve_labyrinth_threads(Laby l){ 
+    // si NB_THREAD == 1, lancer en recursif normal
+    if(NB_THREAD <= 1) return solve_labyrinth(l);
+
+    Case start = trouver_entree(l);
+    Case end = trouver_sortie(l);  
+    l.m[start.col][start.line] = VISITE;
+    allouer_arguments(&l, start, end);
+    
     // == allouer le chemin final
     chemin reponse_finale = malloc(CHEMIN_LENGTH * sizeof(Case));
     // == initialiser
@@ -121,12 +134,7 @@ chemin solve_labyrinth_threads(Laby l){
     }
 
     // rendre l'espace utilisé
-    for(int i = 0 ; i < NB_THREAD ; ++i)
-        free(global_args->res[i]);
-    free(global_args->res);
-    free(global_args->threads);
-    free(global_args->threads_history);
-    free(global_args);
+    free_arguments();
 
     // remettre les cases depart & arrivee (peuvent etre malencontreusement remplacees par des cases VISITE lors de la recursivite)
     l.m[start.col][start.line] = ENTREE; l.m[end.col][end.line] = EXIT;
