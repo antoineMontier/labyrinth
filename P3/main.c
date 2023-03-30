@@ -17,6 +17,8 @@ int main(){
     print_labyrinth(l);
     print_solution(l, res[0]);
     print_solution(l, res[1]);
+    print_chemin(res[0]);
+    print_chemin(res[1]);
     free(res[0]);
     free(res[1]);
     free(res);

@@ -83,8 +83,8 @@ chemin* P3(Laby l){
             wait(NULL);
             exit(1);
         }
-        for(int i = 0 ; i < CHEMIN_LENGTH && !cases_egales(ch1[i], CASE_NULLE) ; ++i)
-            fprintf(result, "%d %d|", ch1[i].col, ch1[i].line);
+        for(int i = 1 ; i < CHEMIN_LENGTH && !cases_egales(ch1[i], CASE_NULLE) ; ++i)
+            fprintf(result, "%d %d|", ch1[i-1].col, ch1[i-1].line);
         fclose(result);
         free(ch1);
         nettoie_matrice(l);
@@ -104,8 +104,8 @@ chemin* P3(Laby l){
             printf("erreure ouverture fichier resultat n°2\n");
             exit(1);
         }
-        for(int i = 0 ; i < CHEMIN_LENGTH && !cases_egales(ch2[i], CASE_NULLE) ; ++i)
-            fprintf(result, "%d %d|", ch2[i].col, ch2[i].line);
+        for(int i = 1 ; i < CHEMIN_LENGTH && !cases_egales(ch2[i], CASE_NULLE) ; ++i)
+            fprintf(result, "%d %d|", ch2[i-1].col, ch2[i-1].line);
         fclose(result);
         free(ch2);        
         nettoie_matrice(copie_l);
@@ -137,10 +137,8 @@ chemin* P3(Laby l){
             wait(NULL);
             exit(1);
         }
-        int i;
-        for(i = 0 ; i+2 < CHEMIN_LENGTH && !cases_egales(ch1[i+2], CASE_NULLE) ; ++i)
+        for(int i = 0 ; i < CHEMIN_LENGTH && !cases_egales(ch1[i], CASE_NULLE) ; ++i)
             fprintf(result, "%d %d|", ch1[i].col, ch1[i].line);
-        fprintf(result, "%d %d", ch1[i+1].col, ch1[i+1].line);
         fclose(result);
         free(ch1);
     }
@@ -152,10 +150,8 @@ chemin* P3(Laby l){
             printf("erreure ouverture fichier resultat n°2\n");
             exit(1);
         }
-        int i;
-        for(i = 0 ; i+2 < CHEMIN_LENGTH && !cases_egales(ch2[i+2], CASE_NULLE) ; ++i)
+        for(int i = 0 ; i < CHEMIN_LENGTH && !cases_egales(ch2[i], CASE_NULLE) ; ++i)
             fprintf(result, "%d %d|", ch2[i].col, ch2[i].line);
-        fprintf(result, "%d %d", ch2[i+1].col, ch2[i+1].line);
         fclose(result);
         free(ch2);
         exit(0);
@@ -741,7 +737,7 @@ void print_labyrinth(Laby l){
                     printf("+");
                     break;
                 case ENTREE_2:
-                    printf("+");
+                    printf("*");
                     break;
                 case PORTE:
                     printf("@");
@@ -750,7 +746,7 @@ void print_labyrinth(Laby l){
                     printf("-");
                     break;
                 case EXIT_2:
-                    printf("-");
+                    printf("/");
                     break;
                 case VISITE:
                     printf("~");
