@@ -202,8 +202,6 @@ int est_dans_un_cul_de_sac(int t_id){
     }
     for(int i = 0 ;  i < CHEMIN_LENGTH && !cases_egales(global_args->res[t_id][i], CASE_NULLE) ; i++)
         if(une_possibilites_de_mouvement(global_args->res[t_id][i])) return 0; // pas de cul de sac
-    //printf("%p\tcul de sac\n", (void*)pthread_self());
-    //print_labyrinth(*global_args->l);
     return 1;
 }
 
@@ -405,10 +403,11 @@ Laby creer_labyrinth(int cols, int lines){
     for (int i = 0; i < lines; i++) {
         for (int j = 0; j < cols; j++) 
             if ((c = fgetc(out)) != '\n') current_laby.m[i][j] = c - '0';
-        fgetc(out); // ne pas prendre en compte le caracter "newline"
+        fgetc(out); // ne pas prendre en compte le '\n'
     }
     
     fclose(out);
+    system("rm out.txt");
     current_laby.lignes = lines;
     current_laby.cols = cols;
     return current_laby;

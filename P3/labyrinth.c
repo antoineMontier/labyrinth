@@ -47,8 +47,8 @@ chemin read_file(const char* filename) {
 
 chemin* P3(Laby l){
     if(NB_THREAD < 3){
-        printf("allouer au moins 4 Threads\n");
-        exit(1);
+        printf("Erreur : allouer au moins 4 Threads\n");
+        return NULL;
     }
     // ==== trouver start_1/2, porte, end_1/2
     Case start_1 = trouver_entree_1(l);
@@ -79,7 +79,7 @@ chemin* P3(Laby l){
     if(son > 0){
         FILE*result = fopen("a1.res", "w");
         if(result == NULL){
-            printf("erreure ouverture fichier resultat n°1\n");
+            printf("erreur ouverture fichier resultat n°1\n");
             wait(NULL);
             exit(1);
         }
@@ -101,7 +101,7 @@ chemin* P3(Laby l){
 
         FILE*result = fopen("a2.res", "w");
         if(result == NULL){
-            printf("erreure ouverture fichier resultat n°2\n");
+            printf("erreur ouverture fichier resultat n°2\n");
             exit(1);
         }
         for(int i = 1 ; i < CHEMIN_LENGTH && !cases_egales(ch2[i], CASE_NULLE) ; ++i)
@@ -118,15 +118,11 @@ chemin* P3(Laby l){
 
 
     // ==== lancer entre PORTE et SORTIE_1/2
-    if(son > 0){
-        /// printf("=\n=\n=\n=\n=\n============================================================ lancement pere\n");
+    if(son > 0)
         ch1 = solve_labyrinth_threads(l, porte, end_1);
-    }
     // ==== lancer entre ENTREE_2 et PORTE
-    if(son == 0){
-        /// printf("=\n=\n=\n=\n=\n============================================================ lancement fils\n");
+    if(son == 0)
         ch2 = solve_labyrinth_threads(copie_l, porte, end_2);
-    }
 
     // ==== attendre les resultats
 
@@ -246,11 +242,9 @@ void ajouter_dans_historique(pthread_t thread_id){
     }
 }
 
-chemin solve_labyrinth_threads(Laby l, Case start, Case end){
-    l.m[start.col][start.line] = VISITE;
-    l.m[end.col][end.line] = WAY;
+void allouer_arguments(Laby *l, Case start, Case end){
     global_args = malloc(sizeof(Thread_args));
-    global_args->l = &l;
+    global_args->l = l;
     global_args->end = end;
     global_args->res = malloc(NB_THREAD*sizeof(chemin));
     for(int i = 0 ; i < NB_THREAD ; i++){
@@ -265,14 +259,34 @@ chemin solve_labyrinth_threads(Laby l, Case start, Case end){
     global_args->threads_history = malloc(NB_THREAD_TOATL * sizeof(pthread_t));
     for(int i = 0 ; i < NB_THREAD_TOATL ; i++)
         global_args->threads_history[i] = 0;
+}
+
+void free_arguments(){
+    for(int i = 0 ; i < NB_THREAD ; ++i)
+        free(global_args->res[i]);
+    free(global_args->res);
+    free(global_args->threads);
+    free(global_args->threads_history);
+    free(global_args);    
+}
+
+chemin solve_labyrinth_threads(Laby l, Case start, Case end){
+    l.m[start.col][start.line] = VISITE;
+    l.m[end.col][end.line] = WAY;
+
+    allouer_arguments(&l, start, end);
+
     chemin reponse_finale = malloc(CHEMIN_LENGTH * sizeof(Case));
-    for(int i = 0; i < CHEMIN_LENGTH; i++)
-        reponse_finale[i] = CASE_NULLE;
-    pthread_mutex_unlock(&solution_trouvee); // debloquer pour le second tour au cas ou le mutex est reste bloque
+    for(int i = 0; i < CHEMIN_LENGTH; i++) reponse_finale[i] = CASE_NULLE;
+
+    pthread_mutex_unlock(&solution_trouvee); // debloquer pour le second tour au cas ou le mutex est reste bloque entre ENTREE_1/2 et PORTE
     pthread_mutex_lock(&solution_trouvee);
+
     pthread_create(&(global_args->threads[0]), NULL, (void*)rec_find_thread, NULL);
+
     ajouter_dans_historique(global_args->threads[0]);
     pthread_mutex_lock(&solution_trouvee);
+
     for(int i = 0 ; i < NB_THREAD_TOATL ; ++i)
         if(global_args->threads_history[i] > 0){
             pthread_join(global_args->threads_history[i], NULL);
@@ -286,12 +300,7 @@ chemin solve_labyrinth_threads(Laby l, Case start, Case end){
         }else if(i == NB_THREAD)
             printf("Erreur: pas de chemin retenu\n");
     }
-    for(int i = 0 ; i < NB_THREAD ; ++i)
-        free(global_args->res[i]);
-    free(global_args->res);
-    free(global_args->threads);
-    free(global_args->threads_history);
-    free(global_args);    
+    free_arguments();
     return reponse_finale;
 }
 
@@ -357,14 +366,12 @@ void print_solution(Laby l, chemin c){
 }
 
 int est_dans_un_cul_de_sac(int t_id){
-    if(t_id == -1){ // gestion d'erreur
+    if(t_id == -1){
         print("erreur, identifiant de thread == -1 dans la fonction est_dans_un_cul_de_sac");
         exit(1);
     }
     for(int i = 0 ;  i < CHEMIN_LENGTH && !cases_egales(global_args->res[t_id][i], CASE_NULLE) ; i++)
-        if(une_possibilites_de_mouvement(global_args->res[t_id][i])) return 0; // pas de cul de sac
-    //printf("%p\tcul de sac\n", (void*)pthread_self());
-    //print_labyrinth(*global_args->l);
+        if(une_possibilites_de_mouvement(global_args->res[t_id][i])) return 0;
     return 1;
 }
 
@@ -412,9 +419,7 @@ int case_in_chemin(int col, int line, chemin c){
 }
 
 void rec_find_thread(){
-    // printf("un tour dans rec_find_threads %d\n", getpid());
     // print_ids();
-    // print_labyrinth(*global_args->l);
     // ================ ARRET : solution trouvee =================
     if(pthread_mutex_trylock(&solution_trouvee) == 0) {pthread_mutex_unlock(&solution_trouvee); pthread_exit(NULL);}
 
@@ -567,7 +572,7 @@ Laby creer_labyrinth(int cols, int lines){
         for (int j = 0; j < cols; j++)
             if ((c = fgetc(out)) != '\n')
                 current_laby.m[i][j] = c - '0';
-        fgetc(out); // ne pas prendre en compte le caracter "newline"
+        fgetc(out);
     }
 
     // placer la deuxieme entree, la deuxime sortie et la porte :
@@ -592,6 +597,7 @@ Laby creer_labyrinth(int cols, int lines){
     current_laby.m[ii][jj] = EXIT_2;
 
     fclose(out);
+    system("rm out.txt");
     current_laby.lignes = lines;
     current_laby.cols = cols;
     return current_laby;
