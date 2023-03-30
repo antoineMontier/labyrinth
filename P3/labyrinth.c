@@ -13,11 +13,11 @@ chemin read_file(const char* filename) {
     FILE* fp = fopen(filename, "r");
 
     if (fp == NULL) {
-        printf("Unable to open file '%s'\n", filename);
+        printf("impossible d'ouvrir le fichier '%s'\n", filename);
         return NULL;
     }
 
-    char buffer[128];
+    char buffer[8*CHEMIN_LENGTH];
 
     int num_cases_expected = CHEMIN_LENGTH;
     chemin = malloc(num_cases_expected * sizeof(Case));
@@ -31,7 +31,7 @@ chemin read_file(const char* filename) {
             chemin[case_count].line = line;
             case_count++;
         } else {
-            printf("Error parsing token '%s'\n", token);
+            printf("Erreur avec le token '%s' > augmenter la taille du chemin (celle du buffer en depend) peut solutionner le probleme\n", token);
         }
         token = strtok(NULL, "|");
     }
@@ -168,7 +168,7 @@ chemin* P3(Laby l){
 
     // ==== suppr les fichiers
 
-    // system("rm a1.res a2.res");
+    system("rm a1.res a2.res");
 
     // ==== supprmier la copie du labyrinth
     free_labyrinth(&copie_l);
@@ -774,15 +774,25 @@ void print_raw_labyrinth(Laby l){
 int check_solution(Laby l, Case*Case_tab, Case start, Case porte, Case end){
     int porte_index = CHEMIN_LENGTH + 2;
     int end_index = 0;
-    if(!cases_egales(Case_tab[0], start)) return 0; //false
+    if(!cases_egales(Case_tab[0], start)){
+        printf("entree pas au debut du chemin\n");
+        return 0; //false
+    }
 
     //verifier que les cases sont voisines
     for(int i = 1; i < CHEMIN_LENGTH && !cases_egales(Case_tab[i], CASE_NULLE) ; ++i){
-        if(cases_egales(Case_tab[i], end)) end_index = i;
+        if(cases_egales(Case_tab[i], end)){
+            end_index = i;
+            if(porte_index < end_index)
+                return 1;
+        }
         if(cases_egales(Case_tab[i], porte)) porte_index = i;
-        if(!sont_voisines(Case_tab[i], Case_tab[i-1])) return 0;
+        if(!sont_voisines(Case_tab[i], Case_tab[i-1])){
+            printf("ne sont pas voisines : %d et %d \n", i-1, i);
+            return 0;
+        }
     }
-    //printf("porte = %d, end = %d\n", porte_index, end_index);
+    printf("porte = %d, end = %d\n", porte_index, end_index);
     if(end_index > porte_index) return 1;
     return 0;
 }
