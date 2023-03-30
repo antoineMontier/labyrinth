@@ -167,3 +167,4 @@ chemin* P3(Laby l);
 
 void nettoie_matrice(Laby l);
 Laby copie_labyrinth(Laby l);
+int check_solution(Laby l, Case*Case_tab, Case start, Case porte, Case end);

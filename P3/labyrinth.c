@@ -57,11 +57,11 @@ chemin* P3(Laby l){
     Case end_2 = trouver_sortie_2(l);
     Case porte = trouver_porte(l);
     l.m[start_1.col][start_1.line] = l.m[start_2.col][start_2.line] = l.m[end_2.col][end_2.line] = l.m[end_1.col][end_1.line] = l.m[porte.col][porte.line] = WAY;
-    print_labyrinth(l);
+    //print_labyrinth(l);
     chemin ch1, ch2; // -- optimisation car 1 seul necessaire
     Laby copie_l = copie_labyrinth(l);
     // ==== fork
-    printf("avant fork\n");
+    //printf("avant fork\n");
     pid_t son = fork();
 
     //printf("two forks\n");
@@ -119,12 +119,12 @@ chemin* P3(Laby l){
 
     // ==== lancer entre PORTE et SORTIE_1/2
     if(son > 0){
-        printf("=\n=\n=\n=\n=\n============================================================ lancement pere\n");
+        /// printf("=\n=\n=\n=\n=\n============================================================ lancement pere\n");
         ch1 = solve_labyrinth_threads(l, porte, end_1);
     }
     // ==== lancer entre ENTREE_2 et PORTE
     if(son == 0){
-        printf("=\n=\n=\n=\n=\n============================================================ lancement fils\n");
+        /// printf("=\n=\n=\n=\n=\n============================================================ lancement fils\n");
         ch2 = solve_labyrinth_threads(copie_l, porte, end_2);
     }
 
@@ -133,7 +133,7 @@ chemin* P3(Laby l){
     if(son > 0){
         FILE*result = fopen("a1.res", "a");
         if(result == NULL){
-            printf("erreure ouverture fichier resultat n°1\n");
+            printf("erreure dans l'ouverture fichier resultat n°1\n");
             wait(NULL);
             exit(1);
         }
@@ -147,7 +147,7 @@ chemin* P3(Laby l){
     if(son == 0){
         FILE*result = fopen("a2.res", "a");
         if(result == NULL){
-            printf("erreure ouverture fichier resultat n°2\n");
+            printf("erreure dans l'ouverture fichier resultat n°2\n");
             exit(1);
         }
         for(int i = 0 ; i < CHEMIN_LENGTH && !cases_egales(ch2[i], CASE_NULLE) ; ++i)
@@ -412,8 +412,8 @@ int case_in_chemin(int col, int line, chemin c){
 }
 
 void rec_find_thread(){
-    printf("un tour dans rec_find_threads %d\n", getpid());
-    print_ids();
+    // printf("un tour dans rec_find_threads %d\n", getpid());
+    // print_ids();
     // print_labyrinth(*global_args->l);
     // ================ ARRET : solution trouvee =================
     if(pthread_mutex_trylock(&solution_trouvee) == 0) {pthread_mutex_unlock(&solution_trouvee); pthread_exit(NULL);}
@@ -769,4 +769,20 @@ void print_raw_labyrinth(Laby l){
             printf("%d",l.m[i][j]);
         printf("|%d\n", i);
     }
+}
+
+int check_solution(Laby l, Case*Case_tab, Case start, Case porte, Case end){
+    int porte_index = CHEMIN_LENGTH + 2;
+    int end_index = 0;
+    if(!cases_egales(Case_tab[0], start)) return 0; //false
+
+    //verifier que les cases sont voisines
+    for(int i = 1; i < CHEMIN_LENGTH && !cases_egales(Case_tab[i], CASE_NULLE) ; ++i){
+        if(cases_egales(Case_tab[i], end)) end_index = i;
+        if(cases_egales(Case_tab[i], porte)) porte_index = i;
+        if(!sont_voisines(Case_tab[i], Case_tab[i-1])) return 0;
+    }
+    //printf("porte = %d, end = %d\n", porte_index, end_index);
+    if(end_index > porte_index) return 1;
+    return 0;
 }
