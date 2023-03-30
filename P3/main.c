@@ -13,6 +13,10 @@ int main(){
     chemin* res = P3(l);//solve_labyrinth_threads(l, (Case)trouver_porte(l), (Case)trouver_sortie_1(l));
     //print_solution(l, res);
     //free(res);
+    nettoie_matrice(l);
+    print_labyrinth(l);
+    print_solution(l, res[0]);
+    print_solution(l, res[1]);
     free(res[0]);
     free(res[1]);
     free(res);
