@@ -7,11 +7,11 @@
 
 #define UNUSED (-1)
 #define MUR 0
-#define WAY 1
+#define LIBRE 1
 #define ENTREE_1 2
 #define ENTREE_2 22
-#define EXIT_1 3
-#define EXIT_2 33
+#define SORTIE_1 3
+#define SORTIE_2 33
 #define PORTE 34
 #define VISITE (-124)
 #define END_SIGNAL (-123)
@@ -49,7 +49,7 @@ void print_ids();
 
 /// @param thread_index l'indice du thread pour lequel on veut une reponse
 /// @return la derniere case ajoute a son chemin (non nulle)
-int getLastCaseIndex(int thread_index);
+int indiceDeDerniereCase(int thread_index);
 
 /// @brief ajoute l'indentifiant renseigne dans le vecteur threads_history de global_args, ca servira lors du join 
 /// @param thread_id identifiant a ajouter
@@ -58,15 +58,15 @@ void ajouter_dans_historique(pthread_t thread_id);
 /// @brief resoud un labyrinth avec des threads (ne fonction de #define NB_THREAD, si NB_THREAD <= 1, resolution recursive, sinon resolution recursive avec des threads)
 /// @param l le labyrinth a resoudre, avec 2 pour entree et 3 pour sortie
 /// @return un vecteur de cases correspondant a l'alternance correcte des cases menant de l'entree a la sortie. les cases {-1, -1} ne sont pas a prendre en compte
-chemin solve_labyrinth_threads(Laby l, Case start, Case end);
+chemin resoudre_avec_threads(Laby l, Case start, Case end);
 
 /// @brief trouve l'indice du thread en fonction de son pthread_id et du champ threads de global_args. identitifiant obtenu avec la fonction pthread_self()
 /// @return l'indice du thread
-int get_thread_num();
+int get_thread_index();
 
 /// @brief cherche une place de libre dans le champ threads de global_args
 /// @return -1 si aucune place, sinon retourne l'indice disponible
-int get_first_room_for_new_thread();
+int indiceDunePlaceLibre();
 
 /// @brief affiche un message precede du pthread_t obtenu avec la fonction pthread_self() et utilise un mutex (acces_out) pour ecrire tout d'un coup dans le terminal
 /// @param msg message a ecrire
@@ -107,10 +107,10 @@ int ajouter_coord_et_nettoyer_apres(int col, int line, chemin c);
 /// @param line ligne de la case a tester
 /// @param c chemin dans lequel on teste 
 /// @return 1 si la case est presente dans le chemin (compare les valeurs)
-int case_in_chemin(int col, int line, chemin c);
+int caseDansChemin(int col, int line, chemin c);
 
 /// @brief fonction recursive utilisant les threads seulement si NB_THREAD > 1. Sinon, la fonction rec_find sera appelée
-void rec_find_thread();
+void recursivite_thread();
 
 /// @brief cree un labyrinth a partir d'un script python
 /// @param cols nombre de colonnes souhaitees (> 3)
@@ -133,16 +133,24 @@ int cases_egales(Case a, Case b);
 /// @param c case a afficher
 void print_Case(Case);
 
-/// @param l labyrinth pour lequel on cherche ENTREE (= 2)
+/// @param l labyrinth pour lequel on cherche ENTREE_1
 /// @return la case correspondant a l'entree
 Case trouver_entree_1(Laby l);
+
+/// @param l labyrinth pour lequel on cherche ENTREE_2
+/// @return la case correspondant a l'entree
 Case trouver_entree_2(Laby l);
 
-/// @param l labyrinth pour lequel on cherche EXIT (= 2)
+/// @param l labyrinth pour lequel on cherche SORTIE_1
 /// @return la case correspondant a la sortie
 Case trouver_sortie_1(Laby l);
+
+/// @param l labyrinth pour lequel on cherche SORTIE_2
+/// @return la case correspondant a la sortie
 Case trouver_sortie_2(Laby l);
 
+/// @param l labyrinth pour lequel on cherche PORTE
+/// @return la case correspondant a la porte
 Case trouver_porte(Laby l);
 
 /// @brief desalloue la memoire alloue pour un labyrinthe (int**)
@@ -151,22 +159,36 @@ void free_labyrinth(Laby*);
 
 /// @brief verifies qu'une solution est correcte (elle va bien du depart a l'arrivee et chaque cases sont voisines)
 /// @param l labyrinthe concerne
-/// @param c chemin a evaluer
+/// @param Case_tab chemin a evaluer
+/// @param start case depart
+/// @param porte case intermediaire
+/// @param end case d'arrivee
 /// @return 1 si solution correcte, 0 sinon
-//  int check_solution(Laby, chemin);
+int verifier_solution(Laby l, chemin Case_tab, Case start, Case porte, Case end);
 
 /// @brief affiche le labyrinthe d'une maniere visuelle, avec '#', ' '...
 /// @param  l le labyrinthe a afficher
 void print_labyrinth(Laby);
 
-/// @brief affiche le labyrinthe avec sa vraie valeure entiere pour chaque case
-/// @param l le labyrinthe a afficher
-void print_raw_labyrinth(Laby l);
+/// @brief lance une course de processes : le 1er part de l'ENTREE_1 en meme temps que le 2e (ENTREE_2), ils s'attendent a PORTE pour rejoindre finalement leur sortie respective
+/// @param l labyrinth dans lequel la course a eu lieu
+/// @return un tableau contenant les deux chemins (tableau dynamique a contenu dynamique)
+chemin* course_de_process(Laby l);
 
-chemin* P3(Laby l);
-
+/// @brief Retire les cases VISITE et les changes en LIBRE
+/// @param l labyrinth a nettoyer
 void nettoie_matrice(Laby l);
-Laby copie_labyrinth(Laby l);
-int check_solution(Laby l, Case*Case_tab, Case start, Case porte, Case end);
+
+/// @brief alloue la stucture partagee servant a la resolution recursive avec des threads du labyrinthe
+/// @param l addresse du labyrinthe
+/// @param start case de depart
+/// @param end case de fin
 void allouer_arguments(Laby *l, Case start, Case end);
+
+/// @brief libere la memoire de la structure partagee
 void free_arguments();
+
+/// @brief lie dans le fichier passe en argument le chemin ecrit
+/// @param filename nom du fichier dans lequel lire
+/// @return le chemin alloue dynamiquement
+chemin lire_fichier(const char* filename);

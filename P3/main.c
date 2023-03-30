@@ -10,16 +10,16 @@
 int main(){
     Laby l = creer_labyrinth(60, 80);
     // print_labyrinth(l);
-    chemin* res = P3(l);
+    chemin* res = course_de_process(l);
     nettoie_matrice(l);
     //print_labyrinth(l);
 
-    if(check_solution(l, res[0], trouver_entree_1(l), trouver_porte(l), trouver_sortie_1(l)))
+    if(verifier_solution(l, res[0], trouver_entree_1(l), trouver_porte(l), trouver_sortie_1(l)))
         printf("solution correcte entre E1 et S1\n");
     else
         printf("solution INCORRECTE entre E1 et S1\n");
 
-    if(check_solution(l, res[1], trouver_entree_2(l), trouver_porte(l), trouver_sortie_2(l)))
+    if(verifier_solution(l, res[1], trouver_entree_2(l), trouver_porte(l), trouver_sortie_2(l)))
         printf("solution correcte entre E2 et S2\n");
     else
         printf("solution INCORRECTE entre E2 et S2\n");

@@ -5,15 +5,15 @@
 
 #define UNUSED (-1)
 #define MUR 0
-#define WAY 1
+#define LIBRE 1
 #define ENTREE 2
-#define EXIT 3
+#define SORTIE 3
 #define VISITE (-124) 
 #define END_SIGNAL (-123)
 #define NB_THREAD 16
 #define NB_THREAD_TOATL (20*NB_THREAD) // imaginons que le nb max de threads est 20 fois le nombre max de threads simultanes
 
-#define CHEMIN_LENGTH (2000)
+#define CHEMIN_LENGTH (10000)
 #define CASE_NULLE ((Case) {-1, -1})
 
 
@@ -44,7 +44,7 @@ void print_ids();
 
 /// @param thread_index l'indice du thread pour lequel on veut une reponse
 /// @return la derniere case ajoute a son chemin (non nulle)
-int getLastCaseIndex(int thread_index);
+int indiceDeDerniereCase(int thread_index);
 
 /// @brief ajoute l'indentifiant renseigne dans le vecteur threads_history de global_args, ca servira lors du join 
 /// @param thread_id identifiant a ajouter
@@ -53,15 +53,15 @@ void ajouter_dans_historique(pthread_t thread_id);
 /// @brief resoud un labyrinth avec des threads (ne fonction de #define NB_THREAD, si NB_THREAD <= 1, resolution recursive, sinon resolution recursive avec des threads)
 /// @param l le labyrinth a resoudre, avec 2 pour entree et 3 pour sortie
 /// @return un vecteur de cases correspondant a l'alternance correcte des cases menant de l'entree a la sortie. les cases {-1, -1} ne sont pas a prendre en compte
-chemin solve_labyrinth_threads(Laby l);
+chemin resoudre_avec_threads(Laby l);
 
 /// @brief trouve l'indice du thread en fonction de son pthread_id et du champ threads de global_args. identitifiant obtenu avec la fonction pthread_self()
 /// @return l'indice du thread
-int get_thread_num();
+int get_thread_index();
 
 /// @brief cherche une place de libre dans le champ threads de global_args
 /// @return -1 si aucune place, sinon retourne l'indice disponible
-int get_first_room_for_new_thread();
+int indiceDunePlaceLibre();
 
 /// @brief affiche un message precede du pthread_t obtenu avec la fonction pthread_self() et utilise un mutex (acces_out) pour ecrire tout d'un coup dans le terminal
 /// @param msg message a ecrire
@@ -102,10 +102,10 @@ int ajouter_coord_et_nettoyer_apres(int col, int line, chemin c);
 /// @param line ligne de la case a tester
 /// @param c chemin dans lequel on teste 
 /// @return 1 si la case est presente dans le chemin (compare les valeurs)
-int case_in_chemin(int col, int line, chemin c);
+int caseDansChemin(int col, int line, chemin c);
 
 /// @brief fonction recursive utilisant les threads seulement si NB_THREAD > 1. Sinon, la fonction rec_find sera appelée
-void rec_find_thread();
+void recursivite_thread();
 
 /// @brief cree un labyrinth a partir d'un script python
 /// @param cols nombre de colonnes souhaitees (> 3)
@@ -132,7 +132,7 @@ void print_Case(Case);
 /// @return la case correspondant a l'entree
 Case trouver_entree(Laby l);
 
-/// @param l labyrinth pour lequel on cherche EXIT (= 2)
+/// @param l labyrinth pour lequel on cherche SORTIE (= 2)
 /// @return la case correspondant a la sortie
 Case trouver_sortie(Laby l);
 
@@ -144,15 +144,11 @@ void free_labyrinth(Laby*);
 /// @param l labyrinthe concerne
 /// @param c chemin a evaluer
 /// @return 1 si solution correcte, 0 sinon
-int check_solution(Laby, chemin);
+int verifier_solution(Laby, chemin);
 
 /// @brief affiche le labyrinthe d'une maniere visuelle, avec '#', ' '...
 /// @param  l le labyrinthe a afficher
 void print_labyrinth(Laby);
-
-/// @brief affiche le labyrinthe avec sa vraie valeure entiere pour chaque case
-/// @param l le labyrinthe a afficher
-void print_raw_labyrinth(Laby l);
 
 /// @brief traitement paliatif au chemin trouve par la recusivite pure car il y a parfois des restes de backtrack dans le chemin reponse
 /// @param c chemin a nettoyer
@@ -163,7 +159,7 @@ void nettoyer_chemin(chemin c);
 /// @param res vecteur de case, reponse
 /// @param current case actuelle
 /// @param end case finale (cible)
-void rec_find(Laby l, chemin res, Case current, Case end);
+void recursivite_simple(Laby l, chemin res, Case current, Case end);
 
 /// @brief lance la recursivite simple pour resoudre le labyrinthe et renvoit son resultat
 /// @param l labyrinthe a resoudre
