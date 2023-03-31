@@ -376,15 +376,6 @@ int ajouter_coord_et_nettoyer_apres(int col, int line, chemin c){
     return 0;// erreur aucune case ajoutee
 }
 
-int caseDansChemin(int col, int line, chemin c){
-    int a, b; // utiliser des variables temporaires pour plus d'efficacité ?
-    for(int i=0; i < CHEMIN_LENGTH; ++i){
-        if((a = c[i].col) == UNUSED || (b = c[i].line) == UNUSED) return 0;
-        if(a == col && b == line) return 1;
-    }
-    return 0;
-}
-
 void reset_id_et_chemin(int thread_indice, int derniere_case){
     if(thread_indice >= NB_THREAD || thread_indice < 0){
         print("erreur dans la fonction reset_id_et_chemin, thread_indice no valide");

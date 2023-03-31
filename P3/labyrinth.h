@@ -5,6 +5,12 @@
 #include <string.h>
 #include <sys/wait.h>
 
+// #defines modifiables par l'utilisateur : 
+#define NB_THREAD 4
+#define NB_THREAD_TOTAL (20*NB_THREAD) // imaginons que le nb max de threads est 20 fois le nombre max de threads simultanes
+#define CHEMIN_LENGTH (2000)
+
+// #defines a ne pas changer
 #define UNUSED (-1)
 #define MUR 0
 #define LIBRE 1
@@ -15,10 +21,6 @@
 #define PORTE 34
 #define VISITE (-124)
 #define END_SIGNAL (-123)
-#define NB_THREAD 4
-#define NB_THREAD_TOTAL (20*NB_THREAD) // imaginons que le nb max de threads est 20 fois le nombre max de threads simultanes
-
-#define CHEMIN_LENGTH (2000)
 #define CASE_NULLE ((Case) {-1, -1})
 
 
@@ -102,12 +104,6 @@ void print_chemin(chemin c);
 /// @param c chemin dans lequel ajouter la case
 /// @return 1 si la case a bien ete ajoutee, 0 s'il y a eu une erreur
 int ajouter_coord_et_nettoyer_apres(int col, int line, chemin c);
-
-/// @param col colonne de la case a tester
-/// @param line ligne de la case a tester
-/// @param c chemin dans lequel on teste 
-/// @return 1 si la case est presente dans le chemin (compare les valeurs)
-int caseDansChemin(int col, int line, chemin c);
 
 /// @brief fonction recursive utilisant les threads seulement si NB_THREAD > 1. Sinon, la fonction rec_find sera appelée
 void recursivite_thread();
