@@ -16,7 +16,7 @@
 #define VISITE (-124)
 #define END_SIGNAL (-123)
 #define NB_THREAD 4
-#define NB_THREAD_TOATL (20*NB_THREAD) // imaginons que le nb max de threads est 20 fois le nombre max de threads simultanes
+#define NB_THREAD_TOTAL (20*NB_THREAD) // imaginons que le nb max de threads est 20 fois le nombre max de threads simultanes
 
 #define CHEMIN_LENGTH (2000)
 #define CASE_NULLE ((Case) {-1, -1})
@@ -157,7 +157,7 @@ Case trouver_porte(Laby l);
 /// @param l adresse du labyrinthe
 void free_labyrinth(Laby*);
 
-/// @brief verifies qu'une solution est correcte (elle va bien du depart a l'arrivee et chaque cases sont voisines)
+/// @brief verifies qu'une solution est correcte (elle va bien du depart a l'arrivee en passant par une porte et chaque cases sont voisines)
 /// @param l labyrinthe concerne
 /// @param Case_tab chemin a evaluer
 /// @param start case depart
@@ -192,3 +192,8 @@ void free_arguments();
 /// @param filename nom du fichier dans lequel lire
 /// @return le chemin alloue dynamiquement
 chemin lire_fichier(const char* filename);
+
+/// @brief remet a zero les informations liees a un thread, utile pour le terminer
+/// @param thread_indice indice du thread a terminer
+/// @param derniere_case indice de la derniere case de ce thread
+void reset_id_et_chemin(int thread_indice, int derniere_case);

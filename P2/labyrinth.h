@@ -10,8 +10,8 @@
 #define SORTIE 3
 #define VISITE (-124) 
 #define END_SIGNAL (-123)
-#define NB_THREAD 16
-#define NB_THREAD_TOATL (20*NB_THREAD) // imaginons que le nb max de threads est 20 fois le nombre max de threads simultanes
+#define NB_THREAD 2
+#define NB_THREAD_TOTAL (20*NB_THREAD) // imaginons que le nb max de threads est 20 fois le nombre max de threads simultanes
 
 #define CHEMIN_LENGTH (10000)
 #define CASE_NULLE ((Case) {-1, -1})
@@ -174,3 +174,8 @@ void allouer_arguments(Laby *l, Case start, Case end);
 
 /// @brief libere la memoire de la structure partagee
 void free_arguments();
+
+/// @brief remet a zero les informations liees a un thread, utile pour le terminer
+/// @param thread_indice indice du thread a terminer
+/// @param derniere_case indice de la derniere case de ce thread
+void reset_id_et_chemin(int thread_indice, int derniere_case);
