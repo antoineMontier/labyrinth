@@ -1,8 +1,17 @@
 #include "labyrinth.h"
 
 /*
-100 mains :
-./main && ./main && ./main ./main && ./main && ./main ./main && ./main && ./main && ./main && ./main && ./main && ./main ./main && ./main && ./main ./main && ./main && ./main && ./main && ./main && ./main && ./main ./main && ./main && ./main ./main && ./main && ./main && ./main && ./main && ./main && ./main ./main && ./main && ./main ./main && ./main && ./main && ./main && ./main && ./main && ./main ./main && ./main && ./main ./main && ./main && ./main && ./main && ./main && ./main && ./main ./main && ./main && ./main ./main && ./main && ./main && ./main && ./main && ./main && ./main ./main && ./main && ./main ./main && ./main && ./main && ./main && ./main && ./main && ./main ./main && ./main && ./main ./main && ./main && ./main && ./main && ./main && ./main && ./main ./main && ./main && ./main ./main && ./main && ./main && ./main && ./main && ./main && ./main ./main && ./main && ./main ./main && ./main && ./main && ./main
+Fonctions utilisateur :
+    resoudre_avec_threads
+    recursivite_thread
+    creer_labyrinth
+    trouver_*
+    print_*
+    free_labyrinth
+    verifier_solution
+    resoudre_recursivement
+
+voir labyrinth.h pour les modifications sur quelques #define
 */
 int main(){
     Laby l = creer_labyrinth(10, 20);

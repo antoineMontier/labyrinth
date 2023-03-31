@@ -3,6 +3,12 @@
 #include <pthread.h>
 #include <unistd.h>
 
+// #defines modifiables par l'utilisateur : 
+#define NB_THREAD 2
+#define NB_THREAD_TOTAL (20*NB_THREAD) // imaginons que le nb max de threads est 20 fois le nombre max de threads simultanes
+#define CHEMIN_LENGTH (10000)
+
+// #defines a ne pas changer
 #define UNUSED (-1)
 #define MUR 0
 #define LIBRE 1
@@ -10,10 +16,6 @@
 #define SORTIE 3
 #define VISITE (-124) 
 #define END_SIGNAL (-123)
-#define NB_THREAD 2
-#define NB_THREAD_TOTAL (20*NB_THREAD) // imaginons que le nb max de threads est 20 fois le nombre max de threads simultanes
-
-#define CHEMIN_LENGTH (10000)
 #define CASE_NULLE ((Case) {-1, -1})
 
 
@@ -164,7 +166,7 @@ void recursivite_simple(Laby l, chemin res, Case current, Case end);
 /// @brief lance la recursivite simple pour resoudre le labyrinthe et renvoit son resultat
 /// @param l labyrinthe a resoudre
 /// @return un vecteur de case, chemin reponse
-chemin solve_labyrinth(Laby l);
+chemin resoudre_recursivement(Laby l);
 
 /// @brief alloue la stucture partagee servant a la resolution recursive avec des threads du labyrinthe
 /// @param l addresse du labyrinthe

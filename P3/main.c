@@ -1,5 +1,15 @@
 #include "labyrinth.h"
+/* 
+Fonctions utilisateur : 
+    print_*
+    creer_labyrinth
+    trouver_*
+    free_labyrinth
+    verifier_solution
+    course_de_process
 
+voir labyrinth.h pour les modifications sur quelques #define
+*/
 int main(){
     Laby l = creer_labyrinth(60, 80);
     // print_labyrinth(l);

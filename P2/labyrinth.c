@@ -91,7 +91,7 @@ void free_arguments(){
 
 chemin resoudre_avec_threads(Laby l){ 
     // si NB_THREAD == 1, lancer en recursif normal
-    if(NB_THREAD <= 1) return solve_labyrinth(l);
+    if(NB_THREAD <= 1) return resoudre_recursivement(l);
 
     Case start = trouver_entree(l);
     Case end = trouver_sortie(l);  
@@ -568,7 +568,7 @@ void recursivite_simple(Laby l, chemin res, Case current, Case end){
     if(current.col+1 < l.lignes && !caseDansChemin(current.col+1, current.line, res) && l.m[current.col+1][current.line] != MUR && l.m[current.col+1][current.line] !=  VISITE) recursivite_simple(l, res, (Case){current.col+1, current.line}, end);
 }
 
-chemin solve_labyrinth(Laby l){
+chemin resoudre_recursivement(Laby l){
     Case start = trouver_entree(l);
     Case end = trouver_sortie(l);
     chemin reponse = malloc(sizeof(chemin) * CHEMIN_LENGTH);
