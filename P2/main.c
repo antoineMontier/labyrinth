@@ -12,6 +12,8 @@ Fonctions utilisateur :
     resoudre_recursivement
 
 voir labyrinth.h pour les modifications sur quelques #define
+
+Toutes les fonctions sont documentees
 */
 int main(){
     Laby l = creer_labyrinth(10, 20);

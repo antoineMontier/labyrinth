@@ -9,6 +9,8 @@ Fonctions utilisateur :
     course_de_process
 
 voir labyrinth.h pour les modifications sur quelques #define
+
+Toutes les fonctions sont documentees
 */
 int main(){
     Laby l = creer_labyrinth(60, 80);
