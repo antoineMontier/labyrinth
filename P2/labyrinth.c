@@ -89,7 +89,8 @@ void free_arguments(){
     free(global_args);
 }
 
-chemin resoudre_avec_threads(Laby l){ 
+chemin resoudre_avec_threads(Laby l){
+
     // si NB_THREAD == 1, lancer en recursif normal
     if(NB_THREAD <= 1) return resoudre_recursivement(l);
 
@@ -468,7 +469,7 @@ void free_labyrinth(Laby*l){
     l->m = NULL;
 }
 
-int verifier_solution(Laby l, Case*Case_tab){
+int verifier_solution(Laby l, chemin Case_tab){
     //verifier ENTREE
     if(l.m[Case_tab[0].col][Case_tab[0].line] != ENTREE) return 0; //false
 
