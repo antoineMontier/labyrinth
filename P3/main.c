@@ -15,7 +15,7 @@ Toutes les fonctions sont documentees
 int main(){
     Laby l = creer_labyrinth(60, 80);
     // print_labyrinth(l);
-    chemin* res = course_de_process(l);
+    chemin* res = course_de_process(l, 1);
 
     if(verifier_solution(l, res[0], trouver_entree_1(l), trouver_porte(l), trouver_sortie_1(l)))    printf("solution correcte entre E1 et S1\n");
     else                                                                                            printf("solution INCORRECTE entre E1 et S1\n");

@@ -1,11 +1,11 @@
 #include "labyrinth.h"  
 
 Thread_args * global_args;
-pthread_mutex_t acces_ids = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t acces_laby = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t acces_out = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t acces_ids_history = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t solution_trouvee = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t acces_ids = PTHREAD_MUTEX_INITIALIZER;// acces aux identifiants de threads et leur chemin associe
+pthread_mutex_t acces_laby = PTHREAD_MUTEX_INITIALIZER;// acces au labyrinthe (lecture et ecriture de cases)
+pthread_mutex_t acces_out = PTHREAD_MUTEX_INITIALIZER;// acces au stdout, pour ordonner les sorties
+pthread_mutex_t acces_ids_history = PTHREAD_MUTEX_INITIALIZER;// acces a l'historique des threads
+pthread_mutex_t solution_trouvee = PTHREAD_MUTEX_INITIALIZER;// bloque tant qu'une solution n'est pas trouvee
 
 chemin lire_fichier(const char* filename) {
     chemin chemin = NULL;
@@ -38,7 +38,7 @@ chemin lire_fichier(const char* filename) {
     return chemin;
 }
 
-chemin* course_de_process(Laby l){
+chemin* course_de_process(Laby l, int commentaire_de_fin){
     if(NB_THREAD < 3){
         printf("Erreur : allouer au moins 4 Threads\n");
         return NULL;
@@ -123,6 +123,8 @@ chemin* course_de_process(Laby l){
         for(int i = 0 ; i < CHEMIN_LENGTH && !cases_egales(ch[i], CASE_NULLE) ; ++i)
             fprintf(result, "%d %d|", ch[i].col, ch[i].line);
         fclose(result);
+        if(commentaire_de_fin)
+            printf("concurrent n°1 a termine !\n");
         free(ch);
     }
 
@@ -137,6 +139,8 @@ chemin* course_de_process(Laby l){
             fprintf(result, "%d %d|", ch[i].col, ch[i].line);
         fclose(result);
         free(ch);
+        if(commentaire_de_fin)
+            printf("concurrent n°2 a termine !\n");
         exit(0);
     }
 

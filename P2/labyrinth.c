@@ -1,11 +1,11 @@
 #include "labyrinth.h"  
 
 Thread_args * global_args;
-pthread_mutex_t acces_ids = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t acces_laby = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t acces_out = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t acces_ids_history = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t solution_trouvee = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t acces_ids = PTHREAD_MUTEX_INITIALIZER; // acces aux identifiants de threads et leur chemin associe
+pthread_mutex_t acces_laby = PTHREAD_MUTEX_INITIALIZER; // acces au labyrinthe (lecture et ecriture de cases)
+pthread_mutex_t acces_out = PTHREAD_MUTEX_INITIALIZER; // acces au stdout, pour ordonner les sorties
+pthread_mutex_t acces_ids_history = PTHREAD_MUTEX_INITIALIZER; // acces a l'historique des threads
+pthread_mutex_t solution_trouvee = PTHREAD_MUTEX_INITIALIZER; // bloque tant qu'une solution n'est pas trouvee
 
 
 void print_ids(){

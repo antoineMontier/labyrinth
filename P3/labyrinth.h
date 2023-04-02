@@ -168,8 +168,9 @@ void print_labyrinth(Laby);
 
 /// @brief lance une course de processes : le 1er part de l'ENTREE_1 en meme temps que le 2e (ENTREE_2), ils s'attendent a PORTE pour rejoindre finalement leur sortie respective
 /// @param l labyrinth dans lequel la course a eu lieu
+/// @param commentaire_de_fin si == 1, les concurents se signaleront quand ils auront passé leur sorties respectives
 /// @return un tableau contenant les deux chemins (tableau dynamique a contenu dynamique)
-chemin* course_de_process(Laby l);
+chemin* course_de_process(Laby l, int commentaire_de_fin);
 
 /// @brief Retire les cases VISITE et les changes en LIBRE
 /// @param l labyrinth a nettoyer
